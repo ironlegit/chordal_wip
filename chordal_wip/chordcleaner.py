@@ -328,6 +328,8 @@ class ChordCanonizer:
 
     # Pattern recognition ----
     ROOT_REGEX = re.compile(r"[A-G](?:#|b)?")
+
+    # TODO: Why the last two?
     SPLIT_REGEX = re.compile(
         r"""
         \([^)]*\)
@@ -391,7 +393,6 @@ class ChordCanonizer:
             "slash": None,
             "UNCLEAR": [],
         }
-        # decomp_chord = self.EMPTY_CHORD
 
         decomp_chord["raw_chord"] = chord
 
@@ -415,6 +416,7 @@ class ChordCanonizer:
 
         if not root_capture:
             decomp_chord["root"] = "X"
+            self._cached_tokens[decomp_chord.get("raw_chord")] = False
             return decomp_chord
 
         root = root_capture.group(0)
@@ -458,7 +460,7 @@ class ChordCanonizer:
         pass
 
 
-test = "Amaj7add9(13) E7(9)(13) Asus2dim A(add9)/E".split(" ")
+test = "Amaj7add9(13) E7(9)(13) E7 Asus2dim A(add9)/E".split(" ")
 
 cc = ChordCanonizer()
 
