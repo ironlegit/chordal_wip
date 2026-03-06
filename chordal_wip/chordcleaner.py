@@ -313,48 +313,42 @@ class ChordCanonizer:
     Aggressive standardization and selection
     """
 
-    EMPTY_CHORD = {
-        "raw_chord": None,  # TODO: RM >> Debug
-        "root": None,
-        "quality": None,
-        "extensions": [],
-        "adds": [],
-        "sus": None,
-        "alterations": [],
-        "slash": None,
-        "UNCLEAR": [],
-    }
-
     # Pattern recognition ----
     ROOT_REGEX = re.compile(r"[A-G](?:#|b)?")
 
-    # TODO: Why the last two?
+    # TODO: Allow only trailing accidentals?
     SPLIT_REGEX = re.compile(
         r"""
         \([^)]*\)
-        |sus\d*
-        |add\d+
-        |maj7|maj|7M|M7
+        |sus(?:2|4)
+        |add(?:2|4|5|6|7|9|11|13){1}[#b+-]?
+        |maj|7M|M7
         |dim
-        |aug
+        |aug|\+
         |m|min
         |[#b+-]?(?:2|4|5|6|7|9|11|13){1}[#b+-]?
     """,
         re.VERBOSE,
     )
 
+    MAJOR_TRIAD_REGEX = re.compile(r"(M|Maj|maj)$")
+
     ALLOWED_QUALITIES = {
         "min": "m",
         "m": "m",
         "-": "m",
-        "maj": "",
-        "Maj": "",
-        "M": "maj7",
-        "maj7": "maj7",
+        "maj": "maj",
+        # "Maj": "",
+        # "M": "maj7",
+        # TODO: should 7th chords be handled in extensions?
+        # "maj7": "maj7",
         "7M": "maj7",
         "M7": "maj7",
         "dim": "dim",
         "aug": "aug",
+        "+": "aug",
+        "7+": "aug7",
+        "5+": "aug5",  # TODO: Wise?
         "sus": "sus4",
         "sus4": "sus4",
         "sus2": "sus2",
@@ -372,21 +366,25 @@ class ChordCanonizer:
         chords_cleaned = []
 
         for chord in chords:
+            print(f"chord: {chord} -----------------------")
             if chord in self._cached_chords:
                 if self._cached_chords[chord]:
                     chords_cleaned.append(chord)
+                    continue
 
             # Canonization
             raw_decomposed_chord = self._decompose(chord)
+            print(f"raw_decomposed_chord : {raw_decomposed_chord}")
             norm_decomposed_chord = self._normalize(raw_decomposed_chord)
             chord_cleaned = self._reconstruct(norm_decomposed_chord)
 
             if not chord_cleaned:
                 self._cached_chords[chord] = False
+                chords_cleaned.append("X")
                 continue
             else:
                 self._cached_chords[chord_cleaned] = True
-
+            print(f"END chord: {chord} -----------------------")
             chords_cleaned.append(chord_cleaned)
 
         print(self._cached_chords)
@@ -402,9 +400,13 @@ class ChordCanonizer:
             "sus": None,
             "alterations": [],
             "slash": None,
+            "unclear": [],
         }
 
         chord = chord.replace("(", "").replace(")", "")
+
+        # TODO: Could be more elegant
+        tokens = []
 
         # Slash handling
         if "/" in chord:
@@ -417,7 +419,9 @@ class ChordCanonizer:
             if self.ROOT_REGEX.match(slash_bass_candidate):
                 decomp_chord["slash"] = slash_bass_candidate
             else:
-                decomp_chord["adds"].append(slash_bass_candidate)
+                # decomp_chord["adds"].append(slash_bass_candidate)
+                tokens.append(slash_bass_candidate)
+                print(f"Line 428: {tokens}")
 
         # Root handling
         root_capture = self.ROOT_REGEX.match(chord)
@@ -430,29 +434,45 @@ class ChordCanonizer:
 
         # Modifier handling
         remainder = chord[len(root) :]
+        print(f"remainder : {remainder}")
 
-        tokens = self.SPLIT_REGEX.findall(remainder)
+        # TODO: Rethink, not very elegant but fixes disappearing "maj", e.g. Emaj7 stays Emaj7
+        if self.MAJOR_TRIAD_REGEX.match(remainder):
+            decomp_chord["quality"] = ""
+            return decomp_chord
+
+        tokens = tokens + self.SPLIT_REGEX.findall(remainder)
+        print(f"tokens : {tokens}")
 
         for token in tokens:
             token = token.strip()
+            print(f"token : {token}")
 
             if token.startswith("add"):
+                print(f"ADD token : {token}")
                 decomp_chord["adds"].append(token)
 
             elif token.startswith("sus"):
+                print(f"SUS token : {token}")
                 decomp_chord["sus"] = self.ALLOWED_QUALITIES[token]
 
             elif token in self.ALLOWED_QUALITIES:
+                print(f"QUALITIES token : {token}")
                 decomp_chord["quality"] = self.ALLOWED_QUALITIES[token]
 
+            # TODO: Still needed?
             elif token.startswith(("#", "b")):
+                print(f"ALTERATIONS token : {token}")
                 decomp_chord["alterations"].append(token)
 
             elif self.EXTENSIONS_REGEX.match(token):
+                print(f"EXTENSIONS token : {token}")
                 decomp_chord["extensions"].append(token)
 
+            # TODO: Remove after testing
             else:
-                decomp_chord["UNCLEAR"].append(token)
+                print(f"unclear token: {token}")
+                decomp_chord["unclear"].append(token)
 
         return decomp_chord
 
@@ -473,26 +493,23 @@ class ChordCanonizer:
         decomp_chord["adds"] = sorted(set(new_adds), key=self._num_sort)
 
         # TODO: normalize sharp or flat extensions!!
-        extentensions = []
+        new_extensions = []
 
         for ext in decomp_chord["extensions"]:
             print(f"Line 483: {ext}")
-            if any(sym in ext for sym in {"#", "b", "-", "+"}):
+            if any(sym in ext for sym in {"-", "+"}):
                 print(f"Line 485: {ext} has an extra symbol")
+                ext = ext.replace("-", "b").replace("+", "#")
+                print(f"ext : {ext}")
+            new_extensions.append(ext)
 
         decomp_chord["extensions"] = sorted(
-            set(decomp_chord["extensions"]), key=self._num_sort
+            set(new_extensions), key=self._num_sort
         )
 
         decomp_chord["alterations"] = sorted(
             set(decomp_chord["alterations"]), key=self._num_sort
         )
-
-        # TODO: Aug handling? Potential issue: sharp extensions and aug can both be described using a "+"...
-        # Potential rule: Define common cases as C7+ as aug, since a sharp C7# is rather uncommon.
-        # C7+ >> Caug7
-        # C5+ >> Caug
-        # What to do about E7/9+ and G7/5+, these are quite common in the dataset
 
         return decomp_chord
 
@@ -507,21 +524,28 @@ class ChordCanonizer:
         if decomp_chord["sus"]:
             chord += decomp_chord["sus"]
 
-        if decomp_chord["extensions"]:
-            # chord += "".join(decomp_chord["extensions"])
-            chord += max(decomp_chord["extensions"])
+        extensions = decomp_chord["extensions"]
+        if extensions:
+            chord += extensions[0]
+            if len(extensions) > 1:
+                chord += "(" + ",".join(extensions[1:]) + ")"
 
         modifiers = []
-
         modifiers.extend(decomp_chord["adds"])
-
-        modifiers.extend(decomp_chord["alterations"])
-
         if modifiers:
-            chord += "(" + ",".join(modifiers) + ")"
+            chord += "[" + ",".join(modifiers) + "]"
+
+        alterations = []
+        alterations.extend(decomp_chord["alterations"])
+        if alterations:
+            chord += "{" + ",".join(alterations) + "}"
 
         if decomp_chord["slash"]:
             chord += "/" + decomp_chord["slash"]
+
+        unclear = decomp_chord["unclear"]
+        if unclear:
+            chord += "*" + ",".join(unclear) + "*"
 
         return chord
 
@@ -540,11 +564,21 @@ class ChordCanonizer:
 # TODO: Create UNIT TESTS
 cc = ChordCanonizer()
 
-test = "Emin Em EMaj Emaj Emaj7 E7M"
-test = "X X Em Em"
+test2 = "C7/-9 C7/9-"
+test2 = "Ebmaj7add9/G"
 test = "D7(9-)/Eb"
-test2 = "Amaj7add9add6(13) E7(9)(13) E7 Asus2dim A(add9)/E"
+test = "E7/13- E13-"
+
+# Issue with 7ths
+test = "Gmaj9 Gmaj7 Gmaj7(9+)"
+# Aug tests, too permissive?
+test = "C5+ C+5 C7+ Caug C+"
+
+# Extensions vs Add test
+test = "A7(13)add9"
+
+test = "Amaj7add9add6(13)"  #  E7(9)(13) E7 Asus2dim A(add9)/E"
 
 
-res = cc.canonicalize(test)
+res = cc.canonicalize(test2)
 print(f"res : {res}")
