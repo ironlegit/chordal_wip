@@ -355,7 +355,7 @@ class ChordCanonizer:
     }
 
     # TODO: only accept accidentals at the end! Leading accidentals are not allowed currently
-    EXTENSIONS_REGEX = re.compile(r"(?:2|4|5|6|7|9|11|13){1}[#b+-]?")
+    EXTENSIONS_REGEX = re.compile(r"[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?")
 
     def __init__(self):
         self._cached_chords = {}
@@ -374,7 +374,6 @@ class ChordCanonizer:
 
             # Canonization
             raw_decomposed_chord = self._decompose(chord)
-            print(f"raw_decomposed_chord : {raw_decomposed_chord}")
             norm_decomposed_chord = self._normalize(raw_decomposed_chord)
             chord_cleaned = self._reconstruct(norm_decomposed_chord)
 
@@ -434,7 +433,6 @@ class ChordCanonizer:
 
         # Modifier handling
         remainder = chord[len(root) :]
-        print(f"remainder : {remainder}")
 
         # TODO: Rethink, not very elegant but fixes disappearing "maj", e.g. Emaj7 stays Emaj7
         if self.MAJOR_TRIAD_REGEX.match(remainder):
@@ -442,31 +440,26 @@ class ChordCanonizer:
             return decomp_chord
 
         tokens = tokens + self.SPLIT_REGEX.findall(remainder)
-        print(f"tokens : {tokens}")
 
         for token in tokens:
             token = token.strip()
             print(f"token : {token}")
 
             if token.startswith("add"):
-                print(f"ADD token : {token}")
                 decomp_chord["adds"].append(token)
 
             elif token.startswith("sus"):
-                print(f"SUS token : {token}")
                 decomp_chord["sus"] = self.ALLOWED_QUALITIES[token]
 
             elif token in self.ALLOWED_QUALITIES:
-                print(f"QUALITIES token : {token}")
                 decomp_chord["quality"] = self.ALLOWED_QUALITIES[token]
 
             # TODO: Still needed?
-            elif token.startswith(("#", "b")):
-                print(f"ALTERATIONS token : {token}")
-                decomp_chord["alterations"].append(token)
+            # elif token.startswith(("#", "b")):
+            #     print(f"ALTERATIONS token : {token}")
+            #     decomp_chord["alterations"].append(token)
 
             elif self.EXTENSIONS_REGEX.match(token):
-                print(f"EXTENSIONS token : {token}")
                 decomp_chord["extensions"].append(token)
 
             # TODO: Remove after testing
@@ -485,9 +478,7 @@ class ChordCanonizer:
         new_adds = []
 
         for add in decomp_chord["adds"]:
-            print(f"Line 467: {decomp_chord['adds']}")
             if add not in decomp_chord["extensions"]:
-                print(f"Line 470: {decomp_chord['extensions']}")
                 new_adds.append(add)
 
         decomp_chord["adds"] = sorted(set(new_adds), key=self._num_sort)
@@ -497,9 +488,11 @@ class ChordCanonizer:
 
         for ext in decomp_chord["extensions"]:
             ext = ext.replace("-", "b").replace("+", "#")
+            print(f"ext : {ext}")
             if "#" in ext or "b" in ext:
                 if ext[-1] in "#b":
                     ext = ext[-1] + ext[:-1]
+                    print(f"ext : {ext}")
 
             new_extensions.append(ext)
 
@@ -566,26 +559,21 @@ class ChordCanonizer:
         return 999
 
 
-# TODO: Create UNIT TESTS
 cc = ChordCanonizer()
 
-test2 = "C9#11b13 C911+13-"
-
-# test2 = "C7/-9 C7/9-"
 # test2 = "Ebmaj7add9/G"
-test = "D7(9-)/Eb"
-test = "E7/13- E13-"
+# TODO: Need for special rules? E.g. E13- is typically Em13 and not E13b
+# Same applies to M7 and 7M
+test2 = "E7/13- E13-"
 
-# Issue with 7ths
-test = "Gmaj9 Gmaj7 Gmaj7(9+)"
-# Aug tests, too permissive?
-test = "C5+ C+5 C7+ Caug C+"
 
 # Extensions vs Add test
 test = "A7(13)add9"
 
 test = "Amaj7add9add6(13)"  #  E7(9)(13) E7 Asus2dim A(add9)/E"
 
+# TODO: Why are these accepted although the splitting criteria does not allow it?
+test2 = "C7/9b C7/9#"
 
 res = cc.canonicalize(test2)
 print(f"res : {res}")
