@@ -317,7 +317,6 @@ class ChordCanonizer:
     # Pattern recognition ----
     ROOT_REGEX = re.compile(r"[A-G](?:#|b)?")
 
-    # TODO: Allow only trailing accidentals?
     SPLIT_REGEX = re.compile(
         r"""
         \([^)]*\)
@@ -327,7 +326,7 @@ class ChordCanonizer:
         |dim
         |aug|\+
         |m|min
-        |[#b+-]?(?:2|4|5|6|7|9|11|13){1}[#b+-]?
+        |[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?
     """,
         re.VERBOSE,
     )
@@ -497,12 +496,17 @@ class ChordCanonizer:
         new_extensions = []
 
         for ext in decomp_chord["extensions"]:
-            print(f"Line 483: {ext}")
-            if any(sym in ext for sym in {"-", "+"}):
-                print(f"Line 485: {ext} has an extra symbol")
-                ext = ext.replace("-", "b").replace("+", "#")
-                print(f"ext : {ext}")
+            ext = ext.replace("-", "b").replace("+", "#")
+            if "#" in ext or "b" in ext:
+                if ext[-1] in "#b":
+                    ext = ext[-1] + ext[:-1]
+
             new_extensions.append(ext)
+
+        # for ext in decomp_chord["extensions"]:
+        #     if any(sym in ext for sym in {"-", "+"}):
+        #         ext = ext.replace("-", "b").replace("+", "#")
+        #     new_extensions.append(ext)
 
         decomp_chord["extensions"] = sorted(
             set(new_extensions), key=self._num_sort
@@ -529,24 +533,24 @@ class ChordCanonizer:
         if extensions:
             chord += extensions[0]
             if len(extensions) > 1:
-                chord += "(" + ",".join(extensions[1:]) + ")"
+                chord += "(e:" + ",".join(extensions[1:]) + ")"
 
         modifiers = []
         modifiers.extend(decomp_chord["adds"])
         if modifiers:
-            chord += "[" + ",".join(modifiers) + "]"
+            chord += "(m:" + ",".join(modifiers) + ")"
 
         alterations = []
         alterations.extend(decomp_chord["alterations"])
         if alterations:
-            chord += "{" + ",".join(alterations) + "}"
+            chord += "(a:" + ",".join(alterations) + ")"
 
         if decomp_chord["slash"]:
             chord += "/" + decomp_chord["slash"]
 
         unclear = decomp_chord["unclear"]
         if unclear:
-            chord += "*" + ",".join(unclear) + "*"
+            chord += "(u:" + ",".join(unclear) + ")"
 
         return chord
 
@@ -565,8 +569,10 @@ class ChordCanonizer:
 # TODO: Create UNIT TESTS
 cc = ChordCanonizer()
 
-test2 = "C7/-9 C7/9-"
-test2 = "Ebmaj7add9/G"
+test2 = "C9#11b13 C911+13-"
+
+# test2 = "C7/-9 C7/9-"
+# test2 = "Ebmaj7add9/G"
 test = "D7(9-)/Eb"
 test = "E7/13- E13-"
 
