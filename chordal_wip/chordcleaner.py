@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 
 class ChordCleaner:
@@ -301,7 +302,7 @@ class ChordIsolator:
 
         return False
 
-    def _validate(self, token: str) -> Optional[Match[str]]:
+    def _validate(self, token: str) -> Optional[re.Match[str]]:
         """
         Validate whether the tokens follow an approximate chord structure
         """
