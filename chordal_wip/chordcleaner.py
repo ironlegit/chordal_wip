@@ -1,5 +1,6 @@
 import re
 from typing import Optional
+import pandas as pd
 
 
 class ChordCleaner:
@@ -342,12 +343,9 @@ class ChordCanonizer:
         "maj": "maj",
         "Maj": "maj",
         "M": "maj",
-        # "M7": "maj7",  # TODO: Special rule?
         "dim": "dim",  # TODO: Consider ° as full diminished?
         "aug": "aug",
         "+": "aug",
-        # "7+": "aug7",
-        # "5+": "aug5",  # TODO: Wise?
         "sus": "sus4",
         "sus4": "sus4",
         "sus2": "sus2",
@@ -356,17 +354,14 @@ class ChordCanonizer:
     EDGE_CASES = {"E13-": "Em13"}
 
     def __init__(self):
-        # TODO: Merge caches somehow!
         self._cached_chords = {}
 
     # Public Method ----
-    def canonicalize(self, txt: str, save_cache: bool = False):
+    def canonicalize(self, txt: str):
         chords = txt.split(" ")
         chords_cleaned = []
 
         for chord in chords:
-            print(f"chord: {chord} -----------------------")
-
             if chord in self._cached_chords:
                 if self._cached_chords[chord]:
                     chords_cleaned.append(chord)
@@ -379,11 +374,8 @@ class ChordCanonizer:
             else:
                 # Canonization
                 raw_decomposed_chord = self._decompose(chord)
-                print(f"raw_decomposed_chord : {raw_decomposed_chord}")
                 norm_decomposed_chord = self._normalize(raw_decomposed_chord)
-                print(f"norm_decomposed_chord : {norm_decomposed_chord}")
                 chord_cleaned = self._reconstruct(norm_decomposed_chord)
-                print(f"chord_cleaned : {chord_cleaned}")
 
             if not chord_cleaned:
                 self._cached_chords[chord] = False
@@ -391,7 +383,6 @@ class ChordCanonizer:
                 continue
             else:
                 self._cached_chords[chord_cleaned] = True
-            print(f"END chord: {chord} -----------------------")
             chords_cleaned.append(chord_cleaned)
 
         # TODO: How to preserve the cache?
@@ -406,10 +397,10 @@ class ChordCanonizer:
         decomp_chord = {
             "root": None,
             "quality": None,
-            "dominant": None,
-            "extensions": [],
             "adds": [],
             "sus": None,
+            "dominant": None,
+            "extensions": [],
             "alterations": [],
             "slash": None,
             "unclear": [],
@@ -417,7 +408,6 @@ class ChordCanonizer:
 
         chord = chord.replace("(", "").replace(")", "")
 
-        # TODO: Could be more elegant
         tokens = []
 
         # Slash handling
@@ -445,11 +435,6 @@ class ChordCanonizer:
         # Modifier handling
         remainder = chord[len(root) :]
 
-        # TODO: Rethink, not very elegant but fixes disappearing "maj", e.g. Emaj7 stays Emaj7
-        # if self.MAJOR_TRIAD_REGEX.match(remainder):
-        #     decomp_chord["quality"] = ""
-        #     return decomp_chord
-
         tokens = tokens + self.SPLIT_REGEX.findall(remainder)
 
         for token in tokens:
@@ -464,27 +449,15 @@ class ChordCanonizer:
             elif token in self.ALLOWED_QUALITIES:
                 decomp_chord["quality"] = self.ALLOWED_QUALITIES[token]
 
-            # # TODO: Still needed?
-            # elif token.startswith(("#", "b")):
-            #     print(f"ALTERATIONS token : {token}")
-            #     decomp_chord["alterations"].append(token)
-
             elif self.EXTENSIONS_REGEX.match(token):
                 decomp_chord["extensions"].append(token)
 
-            # TODO: Remove after testing
             else:
-                print(f"unclear token: {token}")
                 decomp_chord["unclear"].append(token)
 
         return decomp_chord
 
     def _normalize(self, decomp_chord: dict) -> dict:
-        # normalize quality default
-        # TODO: Needed?
-        # if decomp_chord["quality"] is None:
-        #     decomp_chord["quality"] = ""
-
         if decomp_chord["quality"] == "aug":
             decomp_chord["quality"] = ""
             decomp_chord["alterations"].append("#5")
@@ -493,7 +466,6 @@ class ChordCanonizer:
         new_adds = []
         for add in decomp_chord["adds"]:
             add_extension_overlap = add.replace("add", "")
-            print(f"add_extension_overlap : {add_extension_overlap}")
             if add_extension_overlap not in decomp_chord["extensions"]:
                 new_adds.append(add)
         decomp_chord["adds"] = sorted(set(new_adds), key=self._num_sort)
@@ -545,30 +517,23 @@ class ChordCanonizer:
 
         chord = decomp_chord["root"]
 
-        quality = decomp_chord["quality"]
-        if quality:
+        if decomp_chord["quality"]:
             chord += "(q:" + decomp_chord["quality"] + ")"
+
+        if decomp_chord["adds"]:
+            chord += "(m:" + ",".join(decomp_chord["adds"]) + ")"
+
+        if decomp_chord["sus"]:
+            chord += "(s:" + decomp_chord["sus"] + ")"
 
         if decomp_chord["dominant"]:
             chord += "(d:" + "True" + ")"
 
-        # TODO: Tidy up notation with brackets
-        if decomp_chord["sus"]:
-            chord += decomp_chord["sus"]
+        if decomp_chord["extensions"]:
+            chord += "(e:" + ",".join(decomp_chord["extensions"]) + ")"
 
-        extensions = decomp_chord["extensions"]
-        if extensions:
-            chord += "(e:" + ",".join(extensions) + ")"
-
-        modifiers = []
-        modifiers.extend(decomp_chord["adds"])
-        if modifiers:
-            chord += "(m:" + ",".join(modifiers) + ")"
-
-        alterations = []
-        alterations.extend(decomp_chord["alterations"])
-        if alterations:
-            chord += "(a:" + ",".join(alterations) + ")"
+        if decomp_chord["alterations"]:
+            chord += "(a:" + ",".join(decomp_chord["alterations"]) + ")"
 
         if decomp_chord["slash"]:
             chord += "/" + decomp_chord["slash"]
@@ -601,7 +566,7 @@ class ChordCanonizer:
         return all_keys_empty
 
     def _is_dominant(self, d: dict):
-        if d["quality"] in ["maj", "min"]:
+        if d["quality"] in ["maj", "m"]:
             return False
 
         has_seventh = any(
@@ -628,25 +593,12 @@ class ChordFormatter:
 
 # TODO: Check if aug works fine now and add  tests for sus/aug/slashi/6 chords!!
 # TODO: Dominance does not work!
-# TODO: Dominance does not work!
-# TODO: Dominance does not work!
-# TODO: Dominance does not work!
-# TODO: Dominance does not work!
-
 
 cc = ChordCanonizer()
 
-# Extensions vs Add test
-test2 = "Eb7+/9 Eb7+(9)"
+test = pd.Series(["Amin Bmin Cmin", "Amaj Bmaj Cmaj"])
 
-# test2 = "C5+ C+5 C7+ Caug C+"
-test2 = "Amaj7add9add6(9,13)"  #  E7(9)(13) E7 Asus2dim A(add9)/E"
+res = test.apply(cc.canonicalize)
 
-
-test2 = "Emaj7 Emin7 Em7 E7M EM7 E7 E"
-# test2 = "E E/G E7 E6"
-# test2 = "C7/9- C9#11b13 C911+13-"
-# test2 = "E13-"
-res = cc.canonicalize(test2, save_cache=True)
-print(test2)
-print(f"res : {res}")
+cc.save_cache()
+print(f"out : {res}")
