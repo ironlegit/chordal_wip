@@ -75,6 +75,7 @@ class KeyPredictor:
         )
 
 
+# TODO: Main issue is that it is not yet clear what kind of chord format should be used here.
 # progression = "Dm Dm A7 G7 Dm Dm A7 G7 Bm A G A Dm Dm A7 G7 Bm A G A Dm Dm A7 G7 Bm A G A Dm"
 #
 # # progression = "Cmaj Gmaj Am Fmaj Cmaj Fmaj Cmaj Fmaj Cmaj Gmaj Am Fmaj"
