@@ -50,10 +50,10 @@ def test_canonicalize_length_conservation():
 
 
 def test_canonicalize_triads():
-    test = "Emin Em EMaj Emaj EM"
+    test = "Emin Em E- EMaj Emaj EM"
 
     actual = cc.canonicalize(test)
-    expected = "E(q:m) E(q:m) E(q:maj) E(q:maj) E(q:maj)"
+    expected = "E(q:m) E(q:m) E(q:m) E(q:maj) E(q:maj) E(q:maj)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -67,7 +67,27 @@ def test_canonicalize_aug():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
-# TODO: Test sus and dim!!
+def test_canonicalize_sus():
+    test = "Csus Csus2 Csus4 Csus9 Csus/E"
+
+    actual = cc.canonicalize(test)
+    expected = (
+        "C(s:sus4) C(s:sus2) C(s:sus4) C(s:sus4)(d:True)(e:9) C(s:sus4)/E"
+    )
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+# TODO: Should dim be a quality?
+# TODO: Is D#dim7 dominant? Or is it fully diminished
+def test_canonicalize_dim():
+    test = "Cdim D#dim7 Dbdim Cdim/Ab"
+
+    actual = cc.canonicalize(test)
+    expected = "C(q:dim) D#(q:dim)(e:7) Db(q:dim) C(q:dim)/Ab"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
 
 # TODO: Test slash chords!
 
@@ -86,6 +106,15 @@ def test_canonicalize_7th_2():
 
     actual = cc.canonicalize(test)
     expected = "G(q:maj)(e:9) G(q:maj)(e:7) G(q:maj)(e:7,#9) G(d:True)(e:9)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonicalize_weird():
+    test = "Em777 E7add7"
+
+    actual = cc.canonicalize(test)
+    expected = "E(q:m)(e:7) E(d:True)(e:7)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
