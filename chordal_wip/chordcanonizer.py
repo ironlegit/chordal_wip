@@ -18,12 +18,12 @@ class ChordCanonizer:
     SPLIT_REGEX = re.compile(
         r"""
         \([^)]*\)
-        |sus(?:2|4)
+        |sus(?:2|4)?
         |add(?:2|4|5|6|7|9|11|13){1}[#b+-]?
         |maj|M
         |dim
         |aug|\+
-        |m|min
+        |m|min|-
         |[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?
         """,
         re.VERBOSE,
