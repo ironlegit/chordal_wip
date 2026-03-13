@@ -2,6 +2,7 @@ import re
 from typing import Optional
 import pandas as pd
 
+
 class ChordIsolator:
     """
     Lenient chord detection:
@@ -46,7 +47,7 @@ class ChordIsolator:
 
     def save_cache(self):
         df = pd.DataFrame.from_dict(
-            self._cached_tokens = {}, orient="index", columns=["value"]
+            self._cached_tokens, orient="index", columns=["value"]
         )
         df.index.name = "chord"
         df.reset_index(inplace=True)

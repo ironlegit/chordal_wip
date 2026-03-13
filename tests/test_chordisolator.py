@@ -1,4 +1,4 @@
-from chordal_wip.chordcleaner import ChordIsolator
+from chordal_wip.chordisolator import ChordIsolator
 from re import sub
 
 cc = ChordIsolator(char_threshold=10)

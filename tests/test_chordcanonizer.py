@@ -1,4 +1,4 @@
-from chordal_wip.chordcleaner import ChordCanonizer
+from chordal_wip.chordcanonizer import ChordCanonizer
 import pytest
 
 cc = ChordCanonizer()
