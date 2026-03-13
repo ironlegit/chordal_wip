@@ -78,8 +78,6 @@ def test_canonicalize_sus():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
-# TODO: Should dim be a quality?
-# TODO: Is D#dim7 dominant? Or is it fully diminished
 def test_canonicalize_dim():
     test = "Cdim D#dim7 Dbdim Cdim/Ab"
 
@@ -89,7 +87,14 @@ def test_canonicalize_dim():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
-# TODO: Test slash chords!
+@pytest.mark.skip("Figure out dominant issue!!")
+def test_canonicalize_slash():
+    test = "E#/Cb E#7/9/Cb C/D Ebsus4(7)/C#"
+
+    actual = cc.canonicalize(test)
+    expected = "E#(q:maj)/Cb E#(d:True)(e:7,9)/Cb C(q:maj)/D Eb(s:sus4)(e:7)/C#"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
 
 
 def test_canonicalize_7th():

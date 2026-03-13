@@ -36,9 +36,10 @@ class ChordCanonizer:
         "maj": "maj",
         "Maj": "maj",
         "M": "maj",
-        "dim": "dim",  # TODO: Consider ° as full diminished?
+        "dim": "dim",
         "aug": "aug",
         "+": "aug",
+        "4": "sus4",  # TODO: Best place to handle this guy?
         "sus": "sus4",
         "sus4": "sus4",
         "sus2": "sus2",
@@ -104,6 +105,7 @@ class ChordCanonizer:
         }
 
         chord = chord.replace("(", "").replace(")", "")
+        print(f"chord : {chord}")
 
         tokens = []
 
@@ -111,9 +113,10 @@ class ChordCanonizer:
         if "/" in chord:
             parts = chord.split("/")
 
-            chord = parts[0]
+            chord = "".join(parts[0:-1])  # Allows multiple slashes
 
             slash_bass_candidate = parts[-1]
+            print(f"slash_bass_candidate : {slash_bass_candidate}")
 
             if self.ROOT_REGEX.match(slash_bass_candidate):
                 decomp_chord["slash"] = slash_bass_candidate
@@ -131,8 +134,10 @@ class ChordCanonizer:
 
         # Modifier handling
         remainder = chord[len(root) :]
+        print(f"remainder : {remainder}")
 
         tokens = tokens + self.SPLIT_REGEX.findall(remainder)
+        print(f"tokens : {tokens}")
 
         for token in tokens:
             token = token.strip()
@@ -171,7 +176,6 @@ class ChordCanonizer:
         new_extensions = []
         alterations = []
         for ext in decomp_chord["extensions"]:
-            print(f"ext: {ext}")
             if ext == "5+":
                 alterations.append("#5")
                 continue
@@ -263,7 +267,7 @@ class ChordCanonizer:
         return all_keys_empty
 
     def _is_dominant(self, d: dict):
-        if d["quality"] in ["maj", "m"]:
+        if d["quality"] in ["maj", "m", "dim"]:
             return False
 
         has_seventh = any(
@@ -288,14 +292,9 @@ class ChordFormatter:
                 extensions_formatted += "(e:" + ",".join(extensions[1:]) + ")"
 
 
-# TODO: Check if aug works fine now and add  tests for sus/aug/slashi/6 chords!!
-# TODO: Dominance does not work!
-
 cc = ChordCanonizer()
-
-test = pd.Series(["Amin Bmin Cmin", "Amaj Bmaj Cmaj"])
-
+test = pd.Series(["Ebsus4(7)/C# E#7/9/Cb"])
+# TODO: Decide whether dominant can be
 res = test.apply(cc.canonicalize)
-
-cc.save_cache()
-print(f"out : {res}")
+# cc.save_cache()
+# print(f"out : {res}")
