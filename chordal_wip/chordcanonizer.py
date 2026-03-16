@@ -38,7 +38,7 @@ class ChordCanonizer:
         "M": "maj",
         "dim": "dim",
         "aug": "aug",
-        "+": "aug",
+        "+": "aug",  # #TODO: This is by-passed!
         "4": "sus4",  # TODO: Best place to handle this guy?
         "sus": "sus4",
         "sus4": "sus4",
@@ -287,3 +287,9 @@ class ChordCanonizer:
         return has_seventh
 
 
+cc = ChordCanonizer()
+
+# TODO: aug mapping is by-passed, its not wrong but misleading!
+test = "C+ Cm5+ F#7(5+)"
+o = cc.canonicalize(test)
+print(f"o : {o}")
