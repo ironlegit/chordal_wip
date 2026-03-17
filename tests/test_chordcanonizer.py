@@ -58,11 +58,20 @@ def test_canonicalize_triads():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
-def test_canonicalize_aug():
+def test_canonicalize_aug_1():
     test = "C5+ C+5 C7+ Caug C+"
 
     actual = cc.canonicalize(test)
     expected = "C(a:#5) C(e:5)(a:#5) C(d:True)(e:7)(a:#5) C(a:#5) C(a:#5)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonicalize_aug_2():
+    test = "C7+ Caug7 C7+/9 C+M7 Cmaj7/#5"
+
+    actual = cc.canonicalize(test)
+    expected = "X X X X X"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
