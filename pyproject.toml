@@ -1,27 +1,24 @@
 [project]
 name = "chordal_wip"
-version = "0.2.0"
+version = "0.3.0"
 description = "A Python application for generating chord progressions using music theory and Markov chains, with a Kivy-based GUI."
-authors = [
-    {name = "LionelRohner",email = "lionel.rohner@gmail.com"}
-]
+authors = [{ name = "LionelRohner", email = "lionel.rohner@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "numpy (>=2.3.2,<3.0.0)",
-    "pytest (>=8.4.1,<9.0.0)",
-    "pandas (>=2.3.2,<3.0.0)",
-    "kivy (>=2.3.1,<3.0.0)",
-    "transformers (>=4.57.3,<5.0.0)",
-    "jupyter (>=1.1.1,<2.0.0)",
-    "datasets (>=4.4.1,<5.0.0)",
-    "matplotlib (>=3.10.7,<4.0.0)",
-    "scikit-learn (>=1.7.2,<2.0.0)",
-    "seaborn (>=0.13.2,<0.14.0)",
+  "numpy (>=2.3.2,<3.0.0)",
+  "pytest (>=8.4.1,<9.0.0)",
+  "pandas (>=2.3.2,<3.0.0)",
+  "kivy (>=2.3.1,<3.0.0)",
+  "transformers (>=4.57.3,<5.0.0)",
+  "jupyter (>=1.1.1,<2.0.0)",
+  "datasets (>=4.4.1,<5.0.0)",
+  "matplotlib (>=3.10.7,<4.0.0)",
+  "scikit-learn (>=1.7.2,<2.0.0)",
+  "seaborn (>=0.13.2,<0.14.0)",
 ]
 license = "MIT"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
-
