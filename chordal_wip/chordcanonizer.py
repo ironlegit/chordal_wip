@@ -36,7 +36,7 @@ class ChordCanonizer:
         "maj": "maj",
         "Maj": "maj",
         "M": "maj",
-        # "4": "sus4",  # TODO: Best place to handle this guy?
+        "mmaj": "mmaj",
         "sus": "sus4",
         "sus4": "sus4",
         "sus2": "sus2",
@@ -72,8 +72,10 @@ class ChordCanonizer:
             else:
                 # Canonization
                 raw_decomposed_chord = self._decompose(chord)
+                print(f"raw_decomposed_chord : {raw_decomposed_chord}")
                 norm_decomposed_chord = self._normalize(raw_decomposed_chord)
                 chord_cleaned = self._reconstruct(norm_decomposed_chord)
+                print(f"chord_cleaned : {chord_cleaned}")
 
             if not chord_cleaned:
                 self._cached_chords[chord] = False
@@ -100,17 +102,17 @@ class ChordCanonizer:
             "root": None,
             "quality": None,
             "quality_5th": None,
-            "adds": [],
-            "sus": None,
+            "quality_7th": None,
+            # "sus": None,
             "dominant": None,
+            "adds": [],
             "extensions": [],
-            "alterations": [],
+            # "alterations": [],
             "slash": None,
             "unclear": [],
         }
 
         chord = chord.replace("(", "").replace(")", "")
-        print(f"chord : {chord}")
 
         tokens = []
 
@@ -152,9 +154,6 @@ class ChordCanonizer:
             elif token in self.ALLOWED_QUALITIES_5TH:
                 decomp_chord["quality_5th"] = self.ALLOWED_QUALITIES_5TH[token]
 
-            # elif token.startswith("sus"):
-            #     decomp_chord["sus"] = self.ALLOWED_QUALITIES[token]
-
             elif token in self.ALLOWED_QUALITIES:
                 decomp_chord["quality"] = self.ALLOWED_QUALITIES[token]
 
@@ -167,10 +166,6 @@ class ChordCanonizer:
         return decomp_chord
 
     def _normalize(self, decomp_chord: dict) -> dict:
-        if decomp_chord["quality_5th"] == "aug":
-            decomp_chord["quality"] = "maj"
-            decomp_chord["alterations"].append("#5")
-
         # normalize extensions
         new_extensions = []
         new_adds = []
@@ -180,13 +175,15 @@ class ChordCanonizer:
                 new_adds.append(f"add{ext}")
                 continue
 
-            if ext == "5+":
-                alterations.append("#5")
+            if ext == "5+" or ext == "#5":
+                # alterations.append("#5")
+                decomp_chord["quality_5th"] = "aug"
                 continue
 
             if ext == "7+":
                 new_extensions.append("7")
-                alterations.append("#5")
+                # alterations.append("#5")
+                decomp_chord["quality_5th"] = "aug"
                 continue
 
             ext = ext.replace("-", "b").replace("+", "#")
@@ -194,40 +191,90 @@ class ChordCanonizer:
             if "#" in ext or "b" in ext:
                 if ext[-1] in "#b":
                     ext = ext[-1] + ext[:-1]
-                    # TODO: Should be alteration!
-                    # alterations.append(ext)
 
             new_extensions.append(ext)
-
-        decomp_chord["extensions"] = sorted(
-            set(new_extensions), key=self._num_sort
-        )
-
-        decomp_chord["alterations"] = sorted(
-            set(alterations + decomp_chord["alterations"]), key=self._num_sort
-        )
 
         # normalize adds and dedup add / extension overlap
         for add in decomp_chord["adds"]:
             add_extension_overlap = add.replace("add", "")
-            # TODO: Use new_extensions here?
-            if add_extension_overlap not in decomp_chord["extensions"]:
+            if add_extension_overlap not in new_extensions:
                 new_adds.append(add)
         decomp_chord["adds"] = sorted(set(new_adds), key=self._num_sort)
 
-        # TESTING: Major triad check
         major_triad = self._check_empty_dict_keys(
             decomp_chord, ["root", "adds", "slash"]
         )
         if major_triad:
             decomp_chord["quality"] = "maj"
+            return decomp_chord
 
-        # TESTING: Does it work consistently?
-        if self._is_dominant(decomp_chord):
-            decomp_chord["dominant"] = True
+        # Define 7th
+        has_seventh = any(
+            ext in ["7", "9", "11", "13"] for ext in new_extensions
+        )
+        print(f"has_seventh : {has_seventh}")
 
+        if has_seventh:
+            new_extensions = [ext for ext in new_extensions if ext != "7"]
+            if (
+                decomp_chord["quality"] == "maj"
+                and not decomp_chord["quality_5th"]
+            ):
+                print("1")
+                decomp_chord["quality_7th"] = "maj"
+
+            elif decomp_chord["quality"] == "m":
+                print("2")
+                decomp_chord["quality_7th"] = "m"
+
+            elif decomp_chord["quality"] in ["sus2", "sus4"]:
+                print("2.5")
+                decomp_chord["quality_7th"] = "m"
+
+            elif decomp_chord["quality"] == "mmaj":
+                print("3")
+                decomp_chord["quality_7th"] = "m"
+
+            elif (
+                decomp_chord["quality_5th"] == "aug"
+                and not decomp_chord["quality"]
+            ):
+                print("4")
+                decomp_chord["quality_7th"] = "m"
+
+            # FIXME: Currently fixes edge case chords like "Cmaj7/#5"
+            elif (
+                decomp_chord["quality_5th"] == "aug"
+                and decomp_chord["quality"] == "maj"
+            ):
+                print("5")
+                decomp_chord["quality_7th"] = "maj"
+
+            elif decomp_chord["quality_5th"] == "dim":
+                print("6")
+                decomp_chord["quality_7th"] = "dim"
+
+            # FIXME: some candidates are prematurley excluded due to statement struct
+            elif self._is_dominant(decomp_chord):
+                # decomp_chord["dominant"] = True
+                decomp_chord["quality"] = "maj"
+                decomp_chord["quality_7th"] = "m"
+
+        if decomp_chord["quality_5th"] == "aug" and not decomp_chord["quality"]:
+            decomp_chord["quality"] = "maj"
+            # TODO: remove explicit 5 if the chord is aug, example C+5.
+            new_extensions = [ext for ext in new_extensions if ext != "5"]
+
+        decomp_chord["extensions"] = sorted(
+            set(new_extensions), key=self._num_sort
+        )
         return decomp_chord
 
+    # TODO: Should this be a formatter?
+    # What is the benefit from decomposing > string > reformatting?
+    # Wouldnt be decomposing > formatting make more sense?
+    # Reconstruct could use a formatter class that has different options.
+    # This version could be a raw format?
     def _reconstruct(self, decomp_chord: dict) -> str:
         if not decomp_chord["root"]:
             return None
@@ -240,20 +287,17 @@ class ChordCanonizer:
         if decomp_chord["quality_5th"]:
             chord += "(q5:" + decomp_chord["quality_5th"] + ")"
 
-        if decomp_chord["adds"]:
-            chord += "(m:" + ",".join(decomp_chord["adds"]) + ")"
-
-        # if decomp_chord["sus"]:
-        #     chord += "(s:" + decomp_chord["sus"] + ")"
+        if decomp_chord["quality_7th"]:
+            chord += "(q7:" + decomp_chord["quality_7th"] + ")"
 
         if decomp_chord["dominant"]:
             chord += "(d:" + "True" + ")"
 
+        if decomp_chord["adds"]:
+            chord += "(m:" + ",".join(decomp_chord["adds"]) + ")"
+
         if decomp_chord["extensions"]:
             chord += "(e:" + ",".join(decomp_chord["extensions"]) + ")"
-
-        if decomp_chord["alterations"]:
-            chord += "(a:" + ",".join(decomp_chord["alterations"]) + ")"
 
         if decomp_chord["slash"]:
             chord += "/" + decomp_chord["slash"]
@@ -288,22 +332,19 @@ class ChordCanonizer:
     def _is_dominant(self, d: dict):
         """
         Check if a (decomposed) chord qualifies as a dominant chord.
+            - Trigger function if any of 7, 9, 11, or 13 are in extensions
             - Major chords do not qualify as dominant, because the 7th is not minor.
             - Minor chords do not qualify as dominant, because the 3rd is not major.
             - Diminished chord do not qualify as dominant, because the 5th is diminished.
             - Suspended chord do not qualify as dominant, because they are lacking a 3rd.
         """
-        if d["quality"] in ["maj", "m", "dim", "aug"]:
+        if d["quality"] in ["maj", "m", "sus2", "sus4"]:
             return False
 
-        if d["sus"]:
+        if d["quality"] in ["dim"]:
             return False
 
-        has_seventh = any(
-            ext in ["7", "9", "11", "13"] for ext in d["extensions"]
-        )
-
-        return has_seventh
+        return True
 
 
 cc = ChordCanonizer()
@@ -311,9 +352,15 @@ cc = ChordCanonizer()
 # TODO: aug mapping is by-passed, its not wrong but misleading!
 test = "C+ Cm5+ F#7(5+) F#m(4)"
 test = "C+ Caug Caug7 C7+"
+test = "F#maj7(9,13)add6/E"
 
+
+test = "C5+ C+5 C7+ Caug C+"
+
+test = "Ebsus4(7)/C#"
 # TODO: Handle qualities as list or two qualities?
 # TODO: Define #5 as alteration or aug quality?
 # test = "A4 A(4) Aadd4 Asus4"
 o = cc.canonicalize(test)
+print(f"t: {test}")
 print(f"o : {o}")
