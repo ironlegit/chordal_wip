@@ -45,7 +45,7 @@ class ChordCanonizer:
     ALLOWED_QUALITIES_5TH = {
         "dim": "dim",
         "aug": "aug",
-        "+": "aug",  # #TODO: This is by-passed!
+        "+": "aug",
     }
 
     # TODO: This should be generalized to e.g. <ROOT>13-
@@ -65,7 +65,7 @@ class ChordCanonizer:
                     chords_cleaned.append(chord)
                     continue
 
-            # TODO: Dont like this part...
+            # FIXME: Dont like this part...
             if chord in self.EDGE_CASES:
                 print(f"chord {chord} is an edge case!")
                 chord_cleaned = self.EDGE_CASES[chord]
@@ -103,11 +103,9 @@ class ChordCanonizer:
             "quality": None,
             "quality_5th": None,
             "quality_7th": None,
-            # "sus": None,
             "dominant": None,
             "adds": [],
             "extensions": [],
-            # "alterations": [],
             "slash": None,
             "unclear": [],
         }
@@ -143,7 +141,6 @@ class ChordCanonizer:
         remainder = chord[len(root) :]
 
         tokens = tokens + self.SPLIT_REGEX.findall(remainder)
-        print(f"tokens : {tokens}")
 
         for token in tokens:
             token = token.strip()
@@ -169,20 +166,17 @@ class ChordCanonizer:
         # normalize extensions
         new_extensions = []
         new_adds = []
-        alterations = []
         for ext in decomp_chord["extensions"]:
             if ext == "2" or ext == "4":
                 new_adds.append(f"add{ext}")
                 continue
 
             if ext == "5+" or ext == "#5":
-                # alterations.append("#5")
                 decomp_chord["quality_5th"] = "aug"
                 continue
 
             if ext == "7+":
                 new_extensions.append("7")
-                # alterations.append("#5")
                 decomp_chord["quality_5th"] = "aug"
                 continue
 
@@ -208,38 +202,33 @@ class ChordCanonizer:
             decomp_chord["quality"] = "maj"
             return decomp_chord
 
-        # Define 7th
+        # FIXME: This block grew organically and could be more efficient
         has_seventh = any(
             ext in ["7", "9", "11", "13"] for ext in new_extensions
         )
-        print(f"has_seventh : {has_seventh}")
 
         if has_seventh:
+            # If there is a quality_7th, we dont need to have the 7 in the list of extensions
             new_extensions = [ext for ext in new_extensions if ext != "7"]
             if (
                 decomp_chord["quality"] == "maj"
                 and not decomp_chord["quality_5th"]
             ):
-                print("1")
                 decomp_chord["quality_7th"] = "maj"
 
             elif decomp_chord["quality"] == "m":
-                print("2")
                 decomp_chord["quality_7th"] = "m"
 
             elif decomp_chord["quality"] in ["sus2", "sus4"]:
-                print("2.5")
                 decomp_chord["quality_7th"] = "m"
 
             elif decomp_chord["quality"] == "mmaj":
-                print("3")
                 decomp_chord["quality_7th"] = "m"
 
             elif (
                 decomp_chord["quality_5th"] == "aug"
                 and not decomp_chord["quality"]
             ):
-                print("4")
                 decomp_chord["quality_7th"] = "m"
 
             # FIXME: Currently fixes edge case chords like "Cmaj7/#5"
@@ -247,11 +236,9 @@ class ChordCanonizer:
                 decomp_chord["quality_5th"] == "aug"
                 and decomp_chord["quality"] == "maj"
             ):
-                print("5")
                 decomp_chord["quality_7th"] = "maj"
 
             elif decomp_chord["quality_5th"] == "dim":
-                print("6")
                 decomp_chord["quality_7th"] = "dim"
 
             # FIXME: some candidates are prematurley excluded due to statement struct
