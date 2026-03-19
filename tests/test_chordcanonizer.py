@@ -140,7 +140,7 @@ def test_canonicalize_7th():
     test = "Emaj7 Emin7 Em7 E7M EM7 E7"
 
     actual = cc.canonicalize(test)
-    expected = "E(q:maj)(e:7) E(q:m)(e:7) E(q:m)(e:7) E(q:maj)(e:7) E(q:maj)(e:7) E(d:True)(e:7)"
+    expected = "E(q3:maj)(q7:maj) E(q3:m)(q7:m) E(q3:m)(q7:m) E(q3:maj)(q7:maj) E(q3:maj)(q7:maj) E(q3:maj)(q7:m)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -149,7 +149,7 @@ def test_canonicalize_7th_2():
     test = "Gmaj9 Gmaj7 Gmaj7(9+) G9"
 
     actual = cc.canonicalize(test)
-    expected = "G(q:maj)(e:9) G(q:maj)(e:7) G(q:maj)(e:7,#9) G(d:True)(e:9)"
+    expected = "G(q3:maj)(q7:maj)(e:9) G(q3:maj)(q7:maj) G(q3:maj)(q7:maj)(e:#9) G(q3:maj)(q7:m)(e:9)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -158,7 +158,7 @@ def test_canonicalize_weird():
     test = "Em777 E7add7"
 
     actual = cc.canonicalize(test)
-    expected = "E(q:m)(e:7) E(d:True)(e:7)"
+    expected = "E(q3:m)(q7:m) E(q3:maj)(q7:m)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -167,7 +167,7 @@ def test_canonicalize_extensions():
     test = "C7/9- C9#11b13 C911+13-"
 
     actual = cc.canonicalize(test)
-    expected = "C(d:True)(e:7,b9) C(d:True)(e:9,#11,b13) C(d:True)(e:9,#11,b13)"
+    expected = "C(q3:maj)(q7:m)(e:b9) C(q3:maj)(q7:m)(e:9,#11,b13) C(q3:maj)(q7:m)(e:9,#11,b13)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -182,10 +182,10 @@ def test_canonicalize_extensions_edge_cases():
 
     actual = cc.canonicalize(test)
     expected_list = [
-        "C(d:True)(e:7)(u:-9)",  # Leading "-" is not expected in token splitting criteria
-        "C(d:True)(e:7,b9)",  # Correctly interpreted because of slash handling
-        "C(d:True)(e:7,#9)",  # Same as above
-        "C(d:True)(e:9,11,#13)",  # Trailing # or b are not expected, hence it favors #13 instead of 11# and 13b.
+        "C(q3:maj)(q7:m)(u:-9)",  # Leading "-" is not expected in token splitting criteria
+        "C(q3:maj)(q7:m)(e:b9)",  # Correctly interpreted because of slash handling
+        "C(q3:maj)(q7:m)(e:#9)",  # Same as above
+        "C(q3:maj)(q7:m)(e:9,11,#13)",  # Trailing # or b are not expected, hence it favors #13 instead of 11# and 13b.
     ]
     expected = " ".join(expected_list)
 
