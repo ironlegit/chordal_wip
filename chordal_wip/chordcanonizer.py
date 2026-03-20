@@ -5,13 +5,11 @@ import pandas as pd
 
 class ChordCanonizer:
     """
-    Aggressive standardization and selection
+    Decomposition of chords into properties, normalization and reconstruction
     """
 
     # Pattern recognition ----
     ROOT_REGEX = re.compile(r"[A-G](?:#|b)?")
-
-    MAJOR_TRIAD_REGEX = re.compile(r"(M|Maj|maj)$")
 
     EXTENSIONS_REGEX = re.compile(r"[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?")
 
@@ -19,11 +17,13 @@ class ChordCanonizer:
         r"""
         \([^)]*\)
         |sus(?:2|4)?
-        |add(?:2|4|5|6|7|9|11|13){1}[#b+-]?
+        |add[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?
+        |mmaj
+        |Maj
         |maj|M
+        |m|min|-
         |dim
         |aug|\+
-        |m|min|-
         |[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?
         """,
         re.VERBOSE,
@@ -48,9 +48,6 @@ class ChordCanonizer:
         "+": "aug",
     }
 
-    # TODO: This should be generalized to e.g. <ROOT>13-
-    EDGE_CASES = {"E13-": "Em13"}
-
     def __init__(self):
         self._cached_chords = {}
 
@@ -61,31 +58,18 @@ class ChordCanonizer:
 
         for chord in chords:
             if chord in self._cached_chords:
-                if self._cached_chords[chord]:
-                    chords_cleaned.append(chord)
-                    continue
-
-            # FIXME: Dont like this part...
-            if chord in self.EDGE_CASES:
-                print(f"chord {chord} is an edge case!")
-                chord_cleaned = self.EDGE_CASES[chord]
-            else:
-                # Canonization
-                raw_decomposed_chord = self._decompose(chord)
-                print(f"raw_decomposed_chord : {raw_decomposed_chord}")
-                norm_decomposed_chord = self._normalize(raw_decomposed_chord)
-                chord_cleaned = self._reconstruct(norm_decomposed_chord)
-                print(f"chord_cleaned : {chord_cleaned}")
-
-            if not chord_cleaned:
-                self._cached_chords[chord] = False
-                chords_cleaned.append("X")
+                chords_cleaned.append(self._cached_chords[chord])
                 continue
-            else:
-                self._cached_chords[chord_cleaned] = True
-            chords_cleaned.append(chord_cleaned)
 
-        print(self._cached_chords)
+            # Canonization
+            raw_decomposed_chord = self._decompose(chord)
+            norm_decomposed_chord = self._normalize(raw_decomposed_chord)
+            chord_cleaned = self._reconstruct(norm_decomposed_chord)
+
+            result = chord_cleaned if chord_cleaned else "X"
+            self._cached_chords[chord] = result
+            chords_cleaned.append(result)
+
         return " ".join(chords_cleaned)
 
     def save_cache(self):
@@ -103,7 +87,6 @@ class ChordCanonizer:
             "quality": None,
             "quality_5th": None,
             "quality_7th": None,
-            "dominant": None,
             "adds": [],
             "extensions": [],
             "slash": None,
@@ -112,7 +95,7 @@ class ChordCanonizer:
 
         chord = chord.replace("(", "").replace(")", "")
 
-        tokens = []
+        slash_tokens = []
 
         # Slash handling
         if "/" in chord:
@@ -121,12 +104,11 @@ class ChordCanonizer:
             chord = "".join(parts[0:-1])  # Allows multiple slashes
 
             slash_bass_candidate = parts[-1]
-            print(f"slash_bass_candidate : {slash_bass_candidate}")
 
             if self.ROOT_REGEX.match(slash_bass_candidate):
                 decomp_chord["slash"] = slash_bass_candidate
             else:
-                tokens.append(slash_bass_candidate)
+                slash_tokens.append(slash_bass_candidate)
 
         # Root handling
         root_capture = self.ROOT_REGEX.match(chord)
@@ -140,7 +122,7 @@ class ChordCanonizer:
         # Modifier handling
         remainder = chord[len(root) :]
 
-        tokens = tokens + self.SPLIT_REGEX.findall(remainder)
+        tokens = slash_tokens + self.SPLIT_REGEX.findall(remainder)
 
         for token in tokens:
             token = token.strip()
@@ -171,22 +153,58 @@ class ChordCanonizer:
                 new_adds.append(f"add{ext}")
                 continue
 
-            if ext == "5+" or ext == "#5":
+            # Augmented 5th shorthands — conventional and unambiguous, always a quality
+            # signal regardless of how many extensions are present. 7+ is included here
+            # because it is a well-established jazz shorthand for dom7#5, not a sharp 7.
+            if ext in ("5+", "#5", "7+"):
                 decomp_chord["quality_5th"] = "aug"
+                # keep 7 for the has_seventh check later
+                if ext == "7+":
+                    new_extensions.append("7")
                 continue
 
-            if ext == "7+":
-                new_extensions.append("7")
-                decomp_chord["quality_5th"] = "aug"
-                continue
+            # Trailing - / + are ambiguous: quality signal (E13- = Em13) or pitch
+            # alteration (Gmaj7/9- = Gmaj7b9). These symbols are treated as quality
+            # signal only when they are the sole extension AND no explicit quality
+            # has been parsed.
+            # Multiple extensions imply the writer was specifying intervals precisely,
+            # not shorthand quality. Note: 7+ is now handled here, removing the need
+            # for the old special case.
+            if ext.endswith("-") and ext[0] not in ("#", "b"):
+                if (
+                    len(decomp_chord["extensions"]) == 1
+                    and decomp_chord["quality"] is None
+                ):
+                    decomp_chord["quality"] = "m"
+                    ext = ext[:-1]
 
-            ext = ext.replace("-", "b").replace("+", "#")
+                # trailing - becomes flat prefix after reorder below
+                else:
+                    ext = ext[:-1] + "b"
+
+            elif ext.endswith("+") and ext[0] not in ("#", "b"):
+                if (
+                    len(decomp_chord["extensions"]) == 1
+                    and decomp_chord["quality"] is None
+                ):
+                    decomp_chord["quality_5th"] = "aug"
+                    ext = ext[:-1]
+
+                # trailing + becomes sharp prefix after reorder below
+                else:
+                    ext = ext[:-1] + "#"
 
             if "#" in ext or "b" in ext:
+                # Normalise suffix-style accidentals: "9b" → "b9"
                 if ext[-1] in "#b":
                     ext = ext[-1] + ext[:-1]
 
             new_extensions.append(ext)
+
+        # Handle alternative dim or half-dim notation
+        if "b5" in new_extensions:
+            decomp_chord["quality_5th"] = "dim"
+            new_extensions = [ext for ext in new_extensions if ext != "b5"]
 
         # normalize adds and dedup add / extension overlap
         for add in decomp_chord["adds"]:
@@ -195,62 +213,57 @@ class ChordCanonizer:
                 new_adds.append(add)
         decomp_chord["adds"] = sorted(set(new_adds), key=self._num_sort)
 
-        major_triad = self._check_empty_dict_keys(
-            decomp_chord, ["root", "adds", "slash"]
+        major_triad = (
+            not new_extensions
+            and not decomp_chord["quality"]
+            and not decomp_chord["quality_5th"]
+            and not decomp_chord["quality_7th"]
         )
+
         if major_triad:
             decomp_chord["quality"] = "maj"
+            decomp_chord["extensions"] = new_extensions
             return decomp_chord
 
-        # FIXME: This block grew organically and could be more efficient
-        has_seventh = any(
-            ext in ["7", "9", "11", "13"] for ext in new_extensions
+        # 6th chords have no implied 7th — 6 replaces the 7th in these voicings
+        has_sixth = any(self._num_sort(ext) == 6 for ext in new_extensions)
+        has_seventh = not has_sixth and any(
+            self._num_sort(ext) in {7, 9, 11, 13} for ext in new_extensions
         )
 
         if has_seventh:
-            # If there is a quality_7th, we dont need to have the 7 in the list of extensions
-            new_extensions = [ext for ext in new_extensions if ext != "7"]
-            if (
-                decomp_chord["quality"] == "maj"
-                and not decomp_chord["quality_5th"]
-            ):
+            new_extensions = [
+                ext for ext in new_extensions if self._num_sort(ext) != 7
+            ]
+
+            q, q5 = decomp_chord["quality"], decomp_chord["quality_5th"]
+
+            if q == "mmaj":
+                decomp_chord["quality"] = "m"
                 decomp_chord["quality_7th"] = "maj"
-
-            elif decomp_chord["quality"] == "m":
-                decomp_chord["quality_7th"] = "m"
-
-            elif decomp_chord["quality"] in ["sus2", "sus4"]:
-                decomp_chord["quality_7th"] = "m"
-
-            elif decomp_chord["quality"] == "mmaj":
-                decomp_chord["quality_7th"] = "m"
-
-            elif (
-                decomp_chord["quality_5th"] == "aug"
-                and not decomp_chord["quality"]
-            ):
-                decomp_chord["quality_7th"] = "m"
-
-            # FIXME: Currently fixes edge case chords like "Cmaj7/#5"
-            elif (
-                decomp_chord["quality_5th"] == "aug"
-                and decomp_chord["quality"] == "maj"
-            ):
+            elif q == "maj":
                 decomp_chord["quality_7th"] = "maj"
-
-            elif decomp_chord["quality_5th"] == "dim":
-                decomp_chord["quality_7th"] = "dim"
-
-            # FIXME: some candidates are prematurley excluded due to statement struct
-            elif self._is_dominant(decomp_chord):
-                # decomp_chord["dominant"] = True
-                decomp_chord["quality"] = "maj"
+            # Handle half-dim (b5) and full-dim (b5, b7)
+            elif q5 == "dim":
+                decomp_chord["quality_7th"] = "dim" if q is None else "m"
+            else:
                 decomp_chord["quality_7th"] = "m"
+                if q is None:
+                    decomp_chord["quality"] = "maj"  # dominant
 
+        # Edge cases
         if decomp_chord["quality_5th"] == "aug" and not decomp_chord["quality"]:
             decomp_chord["quality"] = "maj"
             # TODO: remove explicit 5 if the chord is aug, example C+5.
-            new_extensions = [ext for ext in new_extensions if ext != "5"]
+            new_extensions = [
+                ext for ext in new_extensions if self._num_sort(ext) != 5
+            ]
+
+        # Fallback: any remaining chord without an explicit quality defaults to major
+        # Excludes dim (quality_5th set) and sus/aug (quality already set above)
+        # TODO: Merge with major_triad logic?
+        if not decomp_chord["quality"] and not decomp_chord["quality_5th"]:
+            decomp_chord["quality"] = "maj"
 
         decomp_chord["extensions"] = sorted(
             set(new_extensions), key=self._num_sort
@@ -277,9 +290,6 @@ class ChordCanonizer:
         if decomp_chord["quality_7th"]:
             chord += "(q7:" + decomp_chord["quality_7th"] + ")"
 
-        if decomp_chord["dominant"]:
-            chord += "(d:" + "True" + ")"
-
         if decomp_chord["adds"]:
             chord += "(m:" + ",".join(decomp_chord["adds"]) + ")"
 
@@ -289,9 +299,8 @@ class ChordCanonizer:
         if decomp_chord["slash"]:
             chord += "/" + decomp_chord["slash"]
 
-        unclear = decomp_chord["unclear"]
-        if unclear:
-            chord += "(u:" + ",".join(unclear) + ")"
+        if decomp_chord["unclear"]:
+            chord += "(u:" + ",".join(decomp_chord["unclear"]) + ")"
 
         return chord
 
@@ -305,33 +314,6 @@ class ChordCanonizer:
             return int(numb.group())
 
         return 999
-
-    def _check_empty_dict_keys(self, d: dict, ignore_keys: list):
-        all_keys_empty = all(
-            [
-                val is None or val == []
-                for key, val in d.items()
-                if key not in ignore_keys
-            ]
-        )
-        return all_keys_empty
-
-    def _is_dominant(self, d: dict):
-        """
-        Check if a (decomposed) chord qualifies as a dominant chord.
-            - Trigger function if any of 7, 9, 11, or 13 are in extensions
-            - Major chords do not qualify as dominant, because the 7th is not minor.
-            - Minor chords do not qualify as dominant, because the 3rd is not major.
-            - Diminished chord do not qualify as dominant, because the 5th is diminished.
-            - Suspended chord do not qualify as dominant, because they are lacking a 3rd.
-        """
-        if d["quality"] in ["maj", "m", "sus2", "sus4"]:
-            return False
-
-        if d["quality"] in ["dim"]:
-            return False
-
-        return True
 
 
 cc = ChordCanonizer()
