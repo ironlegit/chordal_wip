@@ -15,7 +15,6 @@ def test_decompose():
         "quality_5th": None,
         "quality_7th": None,
         "adds": ["add9"],
-        "dominant": None,
         "extensions": ["7"],
         "slash": "G",
         "unclear": [],
@@ -35,21 +34,10 @@ def test_normalize():
         "quality_5th": None,
         "quality_7th": "maj",
         "adds": ["add9"],
-        "dominant": None,
         "extensions": [],
         "slash": "G",
         "unclear": [],
     }
-    assert actual == expected, f"Expected {expected}, got {actual}"
-
-
-@pytest.mark.skip(reason="rethink edge case handling!")
-def test_edge_cases_1():
-    test = "E13-"
-
-    actual = cc.canonicalize(test)
-    expected = "Em13"
-
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
@@ -71,11 +59,40 @@ def test_canonicalize_length_conservation():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
-def test_canonicalize_triads():
+def test_canonicalize_triads_1():
     test = "Emin Em E- EMaj Emaj EM"
 
     actual = cc.canonicalize(test)
     expected = "E(q3:m) E(q3:m) E(q3:m) E(q3:maj) E(q3:maj) E(q3:maj)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonicalize_triads_2():
+    test = "E G# Cb/Db"
+
+    actual = cc.canonicalize(test)
+    expected = "E(q3:maj) G#(q3:maj) Cb(q3:maj)/Db"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonicalize_ext_migration_to_adds():
+    # 2 and 4 should migrate to adds, triggering major triad detection
+    test = "C2 C4 Cm2"
+
+    actual = cc.canonicalize(test)
+    expected = "C(q3:maj)(m:add2) C(q3:maj)(m:add4) C(q3:m)(m:add2)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonicalize_adds():
+    # add with accidental, and dedup when add and extension overlap
+    test = "Cadd#11 Cmaj9add9"
+
+    actual = cc.canonicalize(test)
+    expected = "C(q3:maj)(m:add#11) C(q3:maj)(q7:maj)(e:9)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -107,6 +124,16 @@ def test_canonicalize_aug_3():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
+def test_canonicalize_aug_trailing_plus_non_seven():
+    # "C9+" → augmented with 9th
+    test = "C9+"
+
+    actual = cc.canonicalize(test)
+    expected = "C(q3:maj)(q5:aug)(q7:m)(e:9)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
 def test_canonicalize_sus():
     test = "Csus Csus2 Csus4 Csus9 Csus/E"
 
@@ -127,11 +154,35 @@ def test_canonicalize_dim():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
+def test_canonicalize_half_diminished():
+    # Cm7b5 is the half-diminished chord, distinct from full dim7
+    test = "Cm7b5 Cmin7b5"
+
+    actual = cc.canonicalize(test)
+    expected = "C(q3:m)(q5:dim)(q7:m) C(q3:m)(q5:dim)(q7:m)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
 def test_canonicalize_slash():
     test = "E#/Cb E#7/9/Cb C/D Ebsus4(7)/C#"
 
     actual = cc.canonicalize(test)
     expected = "E#(q3:maj)/Cb E#(q3:maj)(q7:m)(e:9)/Cb C(q3:maj)/D Eb(q3:sus4)(q7:m)/C#"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonicalize_sixth():
+    # C6 has no 7th — extension 6 should not trigger has_seventh logic
+    # C6/9 is a common jazz voicing also without a 7th — worth verifying
+    # your parser's stance on this explicitly
+    test = "C6 C6/9"
+
+    actual = cc.canonicalize(test)
+    expected = (
+        "C(q3:maj)(e:6) C(q3:maj)(e:6,9)"  # no q7 — verify this is intentional
+    )
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -150,6 +201,35 @@ def test_canonicalize_7th_2():
 
     actual = cc.canonicalize(test)
     expected = "G(q3:maj)(q7:maj)(e:9) G(q3:maj)(q7:maj) G(q3:maj)(q7:maj)(e:#9) G(q3:maj)(q7:m)(e:9)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonicalize_7th_3():
+    test = "Gmmaj7 Gmmaj11"
+
+    actual = cc.canonicalize(test)
+    expected = "G(q3:m)(q7:maj) G(q3:m)(q7:maj)(e:11)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonicalize_trailing_minus_with_explicit_quality():
+    # maj already stated → 9- means b9, not minor
+    test = "Cmaj9- C7+/9/E"
+
+    actual = cc.canonicalize(test)
+    expected = "C(q3:maj)(q7:maj)(e:b9) C(q3:maj)(q5:aug)(q7:m)(e:9)/E"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonicalize_minor_trailing_dash():
+    # "E13-" → minor 13, not Eb13
+    test = "E13- Em13"
+
+    actual = cc.canonicalize(test)
+    expected = "E(q3:m)(q7:m)(e:13) E(q3:m)(q7:m)(e:13)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
