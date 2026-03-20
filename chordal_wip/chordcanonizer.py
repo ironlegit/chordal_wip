@@ -314,22 +314,3 @@ class ChordCanonizer:
             return int(numb.group())
 
         return 999
-
-
-cc = ChordCanonizer()
-
-# TODO: aug mapping is by-passed, its not wrong but misleading!
-test = "C+ Cm5+ F#7(5+) F#m(4)"
-test = "C+ Caug Caug7 C7+"
-test = "F#maj7(9,13)add6/E"
-
-
-test = "C5+ C+5 C7+ Caug C+"
-
-test = "Ebsus4(7)/C#"
-# TODO: Handle qualities as list or two qualities?
-# TODO: Define #5 as alteration or aug quality?
-# test = "A4 A(4) Aadd4 Asus4"
-o = cc.canonicalize(test)
-print(f"t: {test}")
-print(f"o : {o}")
