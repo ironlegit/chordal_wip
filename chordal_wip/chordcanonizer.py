@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 import pandas as pd
 
 
@@ -261,7 +260,6 @@ class ChordCanonizer:
 
         # Fallback: any remaining chord without an explicit quality defaults to major
         # Excludes dim (quality_5th set) and sus/aug (quality already set above)
-        # TODO: Merge with major_triad logic?
         if not decomp_chord["quality"] and not decomp_chord["quality_5th"]:
             decomp_chord["quality"] = "maj"
 
@@ -270,7 +268,6 @@ class ChordCanonizer:
         )
         return decomp_chord
 
-    # TODO: Should this be a formatter?
     # What is the benefit from decomposing > string > reformatting?
     # Wouldnt be decomposing > formatting make more sense?
     # Reconstruct could use a formatter class that has different options.

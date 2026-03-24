@@ -148,5 +148,3 @@ class ChordIsolator:
         Validate whether the tokens follow an approximate chord structure
         """
         return self._chord_regex.match(token)
-
-
