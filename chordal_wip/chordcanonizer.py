@@ -51,7 +51,7 @@ class ChordCanonizer:
         self._cached_chords = {}
 
     # Public Method ----
-    def canonicalize(self, txt: str):
+    def canonize(self, txt: str):
         chords = txt.split(" ")
         chords_cleaned = []
 

@@ -40,7 +40,7 @@ class ChordIsolator:
         return re.compile(chord_anatomy, re.VERBOSE)
 
     # Public Method ----
-    def raw_chord_isolation(self, txt: str) -> str:
+    def isolate(self, txt: str) -> str:
         tokens = self._tokenize(txt)
         tokens_list = self._process_tokens(tokens)
         return " ".join(tokens_list)
