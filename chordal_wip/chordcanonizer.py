@@ -71,7 +71,7 @@ class ChordCanonizer:
 
         return " ".join(chords_cleaned)
 
-    def save_cache(self):
+    def write_cache(self):
         df = pd.DataFrame.from_dict(
             self._cached_chords, orient="index", columns=["value"]
         )

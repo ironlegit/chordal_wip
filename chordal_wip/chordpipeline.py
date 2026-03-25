@@ -1,4 +1,5 @@
 import time
+import pandas as pd
 from chordal_wip.chordisolator import ChordIsolator
 from chordal_wip.chordcanonizer import ChordCanonizer
 
@@ -14,13 +15,15 @@ class ChordProcessingPipeline:
         box_inner = 48
 
         # Box
-        print("╔" + "═" * box_inner + "╗")
         title = stage.upper()
+        print("╔" + "═" * box_inner + "╗")
         print("║" + title.center(box_inner) + "║")
         print("║" + message.center(box_inner) + "║")
         print("╚" + "═" * box_inner + "╝")
 
-    def process(self, df, input_column):
+    def process(
+        self, df: pd.DataFrame, input_column: str, write_cache: bool = False
+    ) -> pd.DataFrame:
         # Isolation ----
         start_time = time.time()
         self._print_header("Chord Isolator", "CPP: Starting isolation...")
@@ -28,6 +31,10 @@ class ChordProcessingPipeline:
         df["chords_isolated"] = df[input_column].apply(self.isolator.isolate)
         duration_isolation = time.time() - start_time
         print(f"CPP: Isolation complete ({duration_isolation:.3f}s)")
+
+        if write_cache:
+            print("CPP: Writing isolated tokens cached_tokens.csv")
+            self.isolator.write_cache()
 
         # Canonization ----
         self._print_header(
@@ -38,9 +45,13 @@ class ChordProcessingPipeline:
         df["chords_canonized"] = df["chords_isolated"].apply(
             self.canonizer.canonize
         )
-        duration_canonization = (time.time() - start_time) * 1000
+        duration_canonization = time.time() - start_time
         print(f"CPP: Canonization complete ({duration_canonization:.3f}s)")
 
-        print(f"CPP: Processed {len(df)} rows.")
+        print(f"CPP: Processed {len(df)} rows")
+
+        if write_cache:
+            print("CPP: Writing cached chords in cached_chords.csv")
+            self.canonizer.write_cache()
 
         return df

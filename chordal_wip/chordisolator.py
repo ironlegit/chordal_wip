@@ -45,7 +45,7 @@ class ChordIsolator:
         tokens_list = self._process_tokens(tokens)
         return " ".join(tokens_list)
 
-    def save_cache(self):
+    def write_cache(self):
         df = pd.DataFrame.from_dict(
             self._cached_tokens, orient="index", columns=["value"]
         )
