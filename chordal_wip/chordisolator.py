@@ -11,25 +11,33 @@ class ChordIsolator:
 
     def __init__(self, char_threshold=20):
         self.char_threshold = char_threshold
+        self._root_regex = self._init_root_regex()
         self._chord_regex = self._init_chord_regex()
         self._cached_tokens = {}
 
+    ROOT_NOTE_PATTERN = r"[A-G][#b]?"
+
     # Internal instance ----
+    def _init_root_regex(self):
+        return re.compile(self.ROOT_NOTE_PATTERN, re.VERBOSE)
+
     def _init_chord_regex(self):
         # Chord root
-        root = "[A-G]{1}"
-        accidental = "[#b]?"
-        root_note = rf"{root}{accidental}"
+        root_note = self.ROOT_NOTE_PATTERN
 
         # Chord modifiers
         brackets = r"(?:\([^\)]*\))"  # match brackets with anything in it
         qualities = r"(?:maj|min|dim|aug|sus|add|m|M)"
         extensions = r"(?:2|4|5|6|7|9|10|11|13)"
-        alterations = r"(?:[+#-])"
+        alterations = r"(?:[+#b-])"
 
         # Slash Logic
-        # Either root (Cm7/G) OR some random chord modifier (Cm7/b5)
-        slash_content = rf"/(?:{root_note}|{accidental}?{extensions}|{qualities}|{alterations})+"
+        # Option 1: root (Cm7/G)
+        # Option 2: extension with leading or trailing accidental
+        # Option 3: a qualityOR some random chord modifier (Cm7/b5)
+        # Option 4: Some single alterations
+
+        slash_content = rf"/(?:{root_note}|{alterations}?{extensions}{alterations}?|{qualities}|{alterations})+"
 
         # Cluster
         cluster = rf"(?:{qualities}|{extensions}|{alterations}|{brackets}|{slash_content})*"
@@ -132,13 +140,17 @@ class ChordIsolator:
         return token
 
     def _reject(self, token: str) -> bool:
-        """Predicate that rejects tokens that are too long or resemble tabs"""
+        """Predicate that rejects tokens that are too long, resemble tabs or are unsplittable chord clusters"""
+
+        # Rm long strings
         if len(token) >= self.char_threshold:
-            # print(f"{token} too long")
+            return True
+        # Rm tabs
+        if re.match(r"^[A-G]{1}[#b]?[-|:\s]{1,2}", token):
             return True
 
-        if re.match(r"^[A-G]{1}[#b]?[-|:\s]{1,2}", token):
-            # print(f"{token} is a tab!")
+        # Rm coagulated strings, e.g. G7/E7/B7/E7 or G7-E7-B7-E7
+        if len(re.findall(self._root_regex, token)) > 2:
             return True
 
         return False
