@@ -66,6 +66,7 @@ class ChordIsolator:
     # Tokenize ----
     def _tokenize(self, txt: str) -> list:
         """Split by coma and rm leading, trailing, and excess whitespaces, i.e. n > 1"""
+        # Match ",", "^" or "%" within strings, i.e. not surrounded by whitespace
         split_symbol_pattern = r"(?<=\S)[,^%]{1}(?=\S)"
         txt = re.sub(split_symbol_pattern, " ", txt)
         txt = re.sub(r"\s+", " ", txt)
@@ -81,7 +82,6 @@ class ChordIsolator:
             token = self._erode(token)
 
             if not token:
-                # print("Empty token")
                 continue
 
             token = self._homogenize(token)
@@ -89,7 +89,6 @@ class ChordIsolator:
             cached = self._cached_tokens.get(token)
 
             if cached is not None:
-                # print(f"{token} already in cache!")
                 if cached:
                     chords.append(token)
                     continue
@@ -102,11 +101,9 @@ class ChordIsolator:
                 continue
 
             if self._validate(token):
-                # print(f"{token} validated and cached!")
                 self._cached_tokens[token] = True
                 chords.append(token)
             else:
-                # print(f"{token} added to cache as junk")
                 self._cached_tokens[token] = False
 
         return chords
@@ -117,8 +114,6 @@ class ChordIsolator:
         Strips leading non-note characters from a token.
         Returns the substring starting with the first valid note (A-G) or an empty string if none is found.
         """
-        # Or use regex? ^[^A-G]+
-
         for i, c in enumerate(token):
             if c in "ABCDEFG":
                 return token[i:]
