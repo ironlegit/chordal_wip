@@ -10,6 +10,11 @@ class ChordCanonizer:
     # Pattern recognition ----
     ROOT_REGEX = re.compile(r"[A-G](?:#|b)?")
 
+    # FIXME: Is there a good solution to this?
+    # Justification:
+    # Leading "b" or "#" are much more frequent than "+" or "-"!
+    # Trailing "+" or "-" are much more frequent than "b" or "#"!
+    # Caveat: Some flat or sharp extensions are dropped or mixed up by this rule!
     EXTENSIONS_REGEX = re.compile(r"[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?")
 
     SPLIT_REGEX = re.compile(
@@ -65,6 +70,7 @@ class ChordCanonizer:
             norm_decomposed_chord = self._normalize(raw_decomposed_chord)
             chord_cleaned = self._reconstruct(norm_decomposed_chord)
 
+            # Handle rejections here
             result = chord_cleaned if chord_cleaned else "X"
             self._cached_chords[chord] = result
             chords_cleaned.append(result)
@@ -125,7 +131,6 @@ class ChordCanonizer:
         if slash_tokens:
             remainder += slash_tokens
         tokens = self.SPLIT_REGEX.findall(remainder)
-        print(f"tokens : {tokens}")
 
         for token in tokens:
             token = token.strip()
@@ -171,8 +176,7 @@ class ChordCanonizer:
             # signal only when they are the sole extension AND no explicit quality
             # has been parsed.
             # Multiple extensions imply the writer was specifying intervals precisely,
-            # not shorthand quality. Note: 7+ is now handled here, removing the need
-            # for the old special case.
+            # not shorthand quality.
             if ext.endswith("-") and ext[0] not in ("#", "b"):
                 if (
                     len(decomp_chord["extensions"]) == 1
@@ -315,3 +319,9 @@ class ChordCanonizer:
             return int(numb.group())
 
         return 999
+
+
+# test = "C(Palm-mute)"
+# print(f"test : {test}")
+# cc = ChordCanonizer()
+# print(cc.canonize(test))
