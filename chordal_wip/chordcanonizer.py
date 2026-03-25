@@ -94,7 +94,7 @@ class ChordCanonizer:
 
         chord = chord.replace("(", "").replace(")", "")
 
-        slash_tokens = []
+        slash_tokens = None  # []
 
         # Slash handling
         if "/" in chord:
@@ -107,7 +107,8 @@ class ChordCanonizer:
             if self.ROOT_REGEX.match(slash_bass_candidate):
                 decomp_chord["slash"] = slash_bass_candidate
             else:
-                slash_tokens.append(slash_bass_candidate)
+                slash_tokens = slash_bass_candidate
+                # slash_tokens.append(slash_bass_candidate)
 
         # Root handling
         root_capture = self.ROOT_REGEX.match(chord)
@@ -121,7 +122,10 @@ class ChordCanonizer:
         # Modifier handling
         remainder = chord[len(root) :]
 
-        tokens = slash_tokens + self.SPLIT_REGEX.findall(remainder)
+        if slash_tokens:
+            remainder += slash_tokens
+        tokens = self.SPLIT_REGEX.findall(remainder)
+        print(f"tokens : {tokens}")
 
         for token in tokens:
             token = token.strip()
