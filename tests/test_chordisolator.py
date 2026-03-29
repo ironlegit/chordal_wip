@@ -1,13 +1,13 @@
 from chordal_wip.chordisolator import ChordIsolator
 from re import sub
 
-cc = ChordIsolator(char_threshold=10)
+ci = ChordIsolator(char_threshold=10)
 
 
 def test_tokenize():
     test = " X1 X2  X3^X4 X5%X6  (X7,X8)    X9 "
 
-    actual = cc._tokenize(test)
+    actual = ci._tokenize(test)
     expected = ["X1", "X2", "X3", "X4", "X5", "X6", "(X7", "X8)", "X9"]
 
     assert actual == expected, f"Expected {expected}, got {actual}"
@@ -16,7 +16,7 @@ def test_tokenize():
 def test_erode_pos():
     test = "(((((Cmaj"
 
-    actual = cc._erode(test)
+    actual = ci._erode(test)
     expected = "Cmaj"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
@@ -25,7 +25,7 @@ def test_erode_pos():
 def test_erode_neg():
     test = "this-is-not-a-chord"
 
-    actual = cc._erode(test)
+    actual = ci._erode(test)
     expected = ""
 
     assert actual == expected, f"Expected {expected}, got {actual}"
@@ -34,7 +34,7 @@ def test_erode_neg():
 def test_reject_long():
     test = "this-is-longer-than-limit"
 
-    actual = cc._reject(test)
+    actual = ci._reject(test)
     expected = True
 
     assert actual == expected, f"Expected {expected}, got {actual}"
@@ -43,7 +43,7 @@ def test_reject_long():
 def test_reject_tab():
     test = "A|-3-2-0---x------|"
 
-    actual = cc._reject(test)
+    actual = ci._reject(test)
     expected = True
 
     assert actual == expected, f"Expected {expected}, got {actual}"
@@ -52,7 +52,7 @@ def test_reject_tab():
 def test_not_reject():
     test = "Amin7(9)"
 
-    actual = cc._reject(test)
+    actual = ci._reject(test)
     expected = False
 
     assert actual == expected, f"Expected {expected}, got {actual}"
@@ -61,7 +61,7 @@ def test_not_reject():
 def test_isolate_slash_extensions():
     test = "A7/9/11 A7/b9/b11 A7/9b/11b A7/-9/-11 A7/9-/11- F#/-7b5"
 
-    actual = cc.isolate(test)
+    actual = ci.isolate(test)
     expected = "A7/9/11 A7/b9/b11 A7/9b/11b A7/-9/-11 A7/9-/11- F#/-7b5"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
@@ -70,7 +70,7 @@ def test_isolate_slash_extensions():
 def test_isolate_slash_quality():
     test = "A/maj7"
 
-    actual = cc.isolate(test)
+    actual = ci.isolate(test)
     expected = "A/maj7"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
@@ -80,7 +80,7 @@ def test_isolate_slash_quality():
 def test_isolate_slash_alterations():
     test = "A7/- A7/b"
 
-    actual = cc.isolate(test)
+    actual = ci.isolate(test)
     expected = "A7/- A7/b"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
@@ -91,7 +91,7 @@ def test_reject_slash_clusters():
 
     actual = []
     for t in test:
-        actual.append(cc._reject(t))
+        actual.append(ci._reject(t))
 
     expected = [True, True]
 
@@ -143,7 +143,7 @@ def test_isolate():
     Eb/9
     """
 
-    actual = cc.isolate(test)
+    actual = ci.isolate(test)
     expected = """
     Amin
     Amaj7(13)
