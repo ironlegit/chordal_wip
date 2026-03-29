@@ -16,6 +16,7 @@ def test_decompose():
         "quality_7th": None,
         "adds": ["add9"],
         "extensions": ["7"],
+        "no": None,
         "slash": "G",
         "unclear": [],
     }
@@ -35,6 +36,7 @@ def test_normalize():
         "quality_7th": "maj",
         "adds": ["add9"],
         "extensions": [],
+        "no": None,
         "slash": "G",
         "unclear": [],
     }
@@ -232,6 +234,15 @@ def test_canonize_minor_trailing_dash():
 
     actual = cc.canonize(test)
     expected = "E(q3:m)(q7:m)(e:13) E(q3:m)(q7:m)(e:13)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonize_no_extensions():
+    test = "G#(no3rd) G(no5th) D11(no7)"
+
+    actual = cc.canonize(test)
+    expected = "G#(n:no3) G(q3:maj)(n:no5) D(q3:maj)(e:11)(n:no7)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 

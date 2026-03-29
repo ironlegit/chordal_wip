@@ -22,6 +22,7 @@ class ChordCanonizer:
         \([^)]*\)
         |sus(?:2|4)?
         |add[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?
+        |no[3|5|7]
         |mmaj
         |Maj
         |maj|M
@@ -94,6 +95,7 @@ class ChordCanonizer:
             "quality_7th": None,
             "adds": [],
             "extensions": [],
+            "no": None,
             "slash": None,
             "unclear": [],
         }
@@ -146,6 +148,9 @@ class ChordCanonizer:
 
             elif self.EXTENSIONS_REGEX.match(token):
                 decomp_chord["extensions"].append(token)
+
+            elif token.startswith("no"):
+                decomp_chord["no"] = token
 
             else:
                 decomp_chord["unclear"].append(token)
@@ -225,6 +230,7 @@ class ChordCanonizer:
             and not decomp_chord["quality"]
             and not decomp_chord["quality_5th"]
             and not decomp_chord["quality_7th"]
+            and not decomp_chord["no"]  # TODO: Safe?
         )
 
         if major_triad:
@@ -271,6 +277,19 @@ class ChordCanonizer:
         if not decomp_chord["quality"] and not decomp_chord["quality_5th"]:
             decomp_chord["quality"] = "maj"
 
+        # Handle extension removal logic
+        no = decomp_chord["no"]
+        if no:
+            if no.endswith("3"):
+                decomp_chord["quality"] = None
+            elif no.endswith("5"):
+                decomp_chord["quality_5th"] = None
+            elif no.endswith("7"):
+                decomp_chord["quality_7th"] = None
+            else:
+                decomp_chord["unclear"] = decomp_chord["no"]
+                decomp_chord["no"] = None
+
         decomp_chord["extensions"] = sorted(
             set(new_extensions), key=self._num_sort
         )
@@ -300,6 +319,9 @@ class ChordCanonizer:
 
         if decomp_chord["extensions"]:
             chord += "(e:" + ",".join(decomp_chord["extensions"]) + ")"
+
+        if decomp_chord["no"]:
+            chord += "(n:" + decomp_chord["no"] + ")"
 
         if decomp_chord["slash"]:
             chord += "/" + decomp_chord["slash"]
