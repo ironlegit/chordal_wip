@@ -58,6 +58,18 @@ def test_not_reject():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
+def test_reject_chord_clusters():
+    test = ["G5/B5/A5/G5", "F/Bb-Bb-Eb-F/Bb-Bb"]
+
+    actual = []
+    for t in test:
+        actual.append(ci._reject(t))
+
+    expected = [True, True]
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
 def test_isolate_slash_extensions():
     test = "A7/9/11 A7/b9/b11 A7/9b/11b A7/-9/-11 A7/9-/11- F#/-7b5"
 
