@@ -5,12 +5,17 @@ import pandas as pd
 
 class ChordIsolator:
     """
-    Lenient chord detection:
+    ChordIsolator for lenient chord detection (structural validation):
     Tokenization, minimal normalization and rough selection of tokens based on chord structure.
     """
 
-    def __init__(self, char_threshold=20):
+    def __init__(
+        self,
+        special_token_separator=r"(?<=\S)[,^%]{1}(?=\S)",
+        char_threshold=20,
+    ):
         self.char_threshold = char_threshold
+        self.special_token_separator = special_token_separator
         self._root_regex = self._init_root_regex()
         self._chord_regex = self._init_chord_regex()
         self._cached_tokens = {}
@@ -66,9 +71,8 @@ class ChordIsolator:
     # Tokenize ----
     def _tokenize(self, txt: str) -> list:
         """Split by coma and rm leading, trailing, and excess whitespaces, i.e. n > 1"""
-        # Match ",", "^" or "%" within strings, i.e. not surrounded by whitespace
-        split_symbol_pattern = r"(?<=\S)[,^%]{1}(?=\S)"
-        txt = re.sub(split_symbol_pattern, " ", txt)
+        # By default: Match ",", "^" or "%" within strings, i.e. not surrounded by whitespace
+        txt = re.sub(self.special_token_separator, " ", txt)
         txt = re.sub(r"\s+", " ", txt)
         txt = txt.strip()
         return txt.split(" ")
@@ -97,7 +101,6 @@ class ChordIsolator:
                     continue
 
             if self._reject(token):
-                # print(f"{token} rejected!")
                 continue
 
             if self._validate(token):
