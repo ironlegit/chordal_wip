@@ -148,6 +148,11 @@ class ChordIsolator:
         if len(re.findall(self._root_regex, token)) > 2:
             return True
 
+        # Rm long numbers like strum notation 022100
+        # TODO: Should this be a clean rather than a rejection?
+        if re.search(r"[0-9]{3,}", token):
+            return True
+
         return False
 
     def _validate(self, token: str) -> Optional[re.Match[str]]:
