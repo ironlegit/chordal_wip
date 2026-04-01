@@ -32,7 +32,7 @@ class ChordIsolator:
 
         # Chord modifiers
         brackets = r"(?:\([^\)]*\))"  # match brackets with anything in it
-        qualities = r"(?:maj|min|dim|aug|sus|add|m|M)"
+        qualities = r"(?:maj|min|dim|aug|sus|add|m|M|no)"
         extensions = r"(?:2|4|5|6|7|9|10|11|13)"
         alterations = r"(?:[+#b-])"
 
