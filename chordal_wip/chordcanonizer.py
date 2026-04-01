@@ -4,6 +4,7 @@ import pandas as pd
 
 class ChordCanonizer:
     """
+    ChordCanonizer for strict chord vocabulary (semantic validation):
     Decomposition of chords into properties, normalization and reconstruction
     """
 
@@ -11,22 +12,23 @@ class ChordCanonizer:
     ROOT_REGEX = re.compile(r"[A-G](?:#|b)?")
 
     # FIXME: Is there a good solution to this?
-    # Justification:
+    # Justification for order of accidentals:
     # Leading "b" or "#" are much more frequent than "+" or "-"!
     # Trailing "+" or "-" are much more frequent than "b" or "#"!
     # Caveat: Some flat or sharp extensions are dropped or mixed up by this rule!
     EXTENSIONS_REGEX = re.compile(r"[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?")
 
+    # Cave: Expression is greedy from left (up) to right (down)
     SPLIT_REGEX = re.compile(
         r"""
         \([^)]*\)
         |sus(?:2|4)?
         |add[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?
-        |no[3|5|7]
+        |no[3|5|7](?:rd|th)?
         |mmaj
         |Maj
         |maj|M
-        |m|min|-
+        |min|m|-
         |dim
         |aug|\+
         |[#b]?(?:2|4|5|6|7|9|11|13){1}[+-]?
@@ -100,6 +102,8 @@ class ChordCanonizer:
             "unclear": [],
         }
 
+        # Handle illegal substrings
+        chord = self._strip_paren_annotations(chord)
         chord = chord.replace("(", "").replace(")", "")
 
         slash_tokens = None  # []
@@ -150,12 +154,62 @@ class ChordCanonizer:
                 decomp_chord["extensions"].append(token)
 
             elif token.startswith("no"):
-                decomp_chord["no"] = token
+                decomp_chord["no"] = token.replace("rd", "").replace("th", "")
 
             else:
                 decomp_chord["unclear"].append(token)
 
         return decomp_chord
+
+    def _eval_parenthesis_content(self, p_content: str) -> str:
+        """
+        Check whether a parenthesis content string is fully composed of valid chord tokens.
+
+        Attempts to consume the entire string by repeatedly matching against SPLIT_REGEX
+        from left to right. Returns True only if the string is fully consumed with no
+        remainder, meaning every part of it is a recognised chord modifier.
+
+        Examples:
+            "min"   → True   (fully consumed in one match)
+            "add9"  → True   (fully consumed in one match)
+            "muted" → False  (remainder "uted" after matching "m")
+            "strum" → False  (no match at all)
+            "4x"    → False  (remainder "x" after matching "4")
+        """
+
+        # Iterate through the chord string consuming 1 token at the time from left to right.
+        # Example: "maj7" → match "maj", remainder "7" → match "7", no remainder → exit
+        while p_content:
+            match = self.SPLIT_REGEX.match(p_content)
+            if not match:
+                return False
+            p_content = p_content[match.end() :]
+        return True
+
+    def _strip_paren_annotations(self, chord: str) -> str:
+        """
+        Remove parenthetical annotations that do not contain valid chord content.
+
+        Iterates over all parenthetical groups in the chord string and removes those
+        whose content is not recognised by _is_valid_paren_content. Parentheticals
+        with valid chord content, such as (min) or (add9), are preserved.
+
+        Examples:
+            "A(strum)"  → "A"
+            "A(muted)"  → "A"
+            "A(4x)"     → "A"
+            "A(min)"    → "A(min)"
+            "Cmaj(add9" → "Cmaj(add9)"  (no change, not a closed parenthetical)
+        """
+
+        if "(" not in chord:
+            return chord
+
+        for match in re.finditer(r"\(([^)]*)\)", chord):
+            p_content = match.group(1)
+            if not self._eval_parenthesis_content(p_content):
+                chord = chord.replace(match.group(0), "")  # p_content)  # "")
+        return chord
 
     def _normalize(self, decomp_chord: dict) -> dict:
         # normalize extensions
@@ -341,9 +395,3 @@ class ChordCanonizer:
             return int(numb.group())
 
         return 999
-
-
-# test = "C(Palm-mute)"
-# print(f"test : {test}")
-# cc = ChordCanonizer()
-# print(cc.canonize(test))
