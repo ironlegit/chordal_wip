@@ -265,17 +265,81 @@ def test_canonize_extensions():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
+def test_canonize_parenthesis_allowed():
+    test = "A(min) G(sus2) D(add9) F(aug) Bb(dim)"
+
+    actual = cc.canonize(test)
+    expected = (
+        "A(q3:m) G(q3:sus2) D(q3:maj)(m:add9) F(q3:maj)(q5:aug) Bb(q5:dim)"
+    )
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonize_parenthesis_illegal_strings_1():
+    test = "A(strum) G(muted) D(let_ring) F(string2open) Bb(hold) E(palm-muted) E(PM)"
+
+    actual = cc.canonize(test)
+    expected = (
+        "A(q3:maj) G(q3:maj) D(q3:maj) F(q3:maj) Bb(q3:maj) E(q3:maj) E(q3:maj)"
+    )
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonize_parenthesis_illegal_strings_2():
+    test = "A(s/c) G(once) D#/Bb(hold) F(chord) Bb(rasuego)"
+
+    actual = cc.canonize(test)
+    expected = "A(q3:maj) G(q3:maj) D#(q3:maj)/Bb F(q3:maj) Bb(q3:maj)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonize_parenthesis_illegal_repetitions():
+    test = "A(4x) G(x3) D(2x) F(x2)"
+
+    actual = cc.canonize(test)
+    expected = "A(q3:maj) G(q3:maj) D(q3:maj) F(q3:maj)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonize_parenthesis_double_allowed():
+    test = "A(strum)(min) G(Muted)(4x)"
+
+    actual = cc.canonize(test)
+    expected = "A(q3:m) G(q3:maj)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonize_parenthesis_ambiguous():
+    test = "A7(9b) C(sus) D(add) F(C)"
+
+    actual = cc.canonize(test)
+    expected_list = [
+        "A(q3:maj)(q7:m)",  # "the parenthesis content is stripped since it does not match SPLIT_REGEX
+        "C(q3:sus4)",  # "sus" defaults to "sus4"
+        "D(q3:maj)",  # "add" without number has no default fallback
+        "F(q3:maj)",  # illegal slash notation
+    ]
+
+    expected = " ".join(expected_list)
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
 def test_canonize_wrong_canonizations():
     """
     Leading accidentals "+" and "-" are not allowed.
     Trailing accidentals "#" and "b" are not allowed.
     Cave: Two trailing accidentals using "#" and "b" are wronly interpreted as valid cases, because of the above rules!
     """
-    test = "F7(9b) C7/-9 C7/9b C7/9# C911#13b"
+    test = "C7/-9 C7/9b C7/9# C911#13b"
 
     actual = cc.canonize(test)
     expected_list = [
-        "F(q3:maj)(q7:m)(e:9)",  # "7(9b)" becomes "79b" and is tokenzied as "7" and "9", trailing b is dropped
         "C(q3:maj)(q7:m)(e:9)",  # "7/-9" becomes "7-9" and is tokenized as "7-" and "9"
         "C(q3:maj)(q7:m)(e:9)",  # Same as first example
         "C(q3:maj)(q7:m)(e:9)",  # Same as first example with sharp
