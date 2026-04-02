@@ -212,8 +212,10 @@ __marimo__/
 # sqlite3
 *.db
 
-# csv
-*.csv*
+# table files
+*.csv
+*lock.*
+
 
 # quarto stuff
 *.html
