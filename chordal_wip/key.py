@@ -23,6 +23,7 @@ class KeyPredictor:
             self.scores.idxmax(), ["key", "mode"]
         ]
 
+    # Private methods
     def _chord_progression(self) -> list:
         chord_lst = self.chord_txt.split(" ")
         return [chord for chord in chord_lst if "/" not in chord]
@@ -65,7 +66,7 @@ class KeyPredictor:
         scores = (weights_df.mul(self.chord_proportions, axis=1)).sum(axis=1)
         ref = self.reference
         ref["scores"] = scores.values
-        print(ref)
+        # print(ref)
         return scores
 
     def __str__(self):
@@ -75,14 +76,86 @@ class KeyPredictor:
         )
 
 
+class KeyPredictor2:
+    """
+    A class for predicting key from a chord progression.
+    """
+
+    def __init__(self, reference: pd.DataFrame):
+        # self._integrity_proportions()
+        self.reference = reference  # scales.get_ref_scales()
+        # self.scores = self._calculate_scores()
+        # self.top_scale = self.reference.loc[
+        #     self.scores.idxmax(), ["key", "mode"]
+        # ]
+
+    # Public methods
+    def predict_key(self, chords: str) -> str:
+        chords = pd.Series(chords.split(" "))
+        n_chords = len(chords)
+        # [chord for chord in chord_lst if "/" not in chord]
+        counts = chords.value_counts(ascending=False)
+        # Stats
+        proportions = counts / n_chords
+        print(f"proportion : {proportions}")
+        exit()
+        # TODO: _integrity_proportions
+
+        # Creates a weight-matrix of all scales (rows) and all chords (cols)
+        # TODO: Should be an attribute
+        weights_df = pd.DataFrame.from_records(self.reference["chord_weights"])
+
+        # Multiply the chord freqs (progression) with the weights of the references
+        scores = (weights_df.mul(proportions, axis=1)).sum(axis=1)
+        ref = self.reference
+        ref["scores"] = scores.values
+        print(ref)
+        return scores
+
+    # Private methods
+
+    def _integrity_proportions(self):
+        sum_to_one = self.chord_proportions.sum()
+
+        if sum_to_one != approx(1.0):
+            raise ValueError(f"Proportions do not sum to 1, got {sum_to_one}")
+
+    def _sort_chords(self, counts_unsorted: pd.Series) -> pd.Series:
+        # Find key with highest value
+        max_key = counts_unsorted.idxmax()
+
+        # Get sorted index as a list
+        sorted_index = counts_unsorted.sort_index().index.tolist()
+
+        # Find position of max_key
+        max_key_idx = sorted_index.index(max_key)
+
+        # Rotate the index list
+        rotated_index = rotate_list(sorted_index, max_key_idx, dir="left")
+
+        return counts_unsorted[rotated_index]
+
+    def __str__(self):
+        return (
+            f"Chord Progression:\n{self.chord_proportions}\n"
+            f"Best Matching Scale: {self.top_scale['key']} {self.top_scale['mode']}"
+        )
+
+
 # TODO: Main issue is that it is not yet clear what kind of chord format should be used here.
-# progression = "Dm Dm A7 G7 Dm Dm A7 G7 Bm A G A Dm Dm A7 G7 Bm A G A Dm Dm A7 G7 Bm A G A Dm"
-#
-# # progression = "Cmaj Gmaj Am Fmaj Cmaj Fmaj Cmaj Fmaj Cmaj Gmaj Am Fmaj"
-# reference = scales.get_ref_scales()
-# kp = KeyPredictor(progression, reference)
-#
+progression = "Dm Dm A7 G7 Dm Dm A7 G7 Bm A G A Dm Dm A7 G7 Bm A G A Dm Dm A7 G7 Bm A G A Dm"
+
+# progression = "Cmaj Gmaj Am Fmaj Cmaj Fmaj Cmaj Fmaj Cmaj Gmaj Am Fmaj"
+reference = scales.get_ref_scales()
+# print(f"reference : {reference}")
+kp = KeyPredictor(progression, reference)
+
 # print(kp)
+
+kp2 = KeyPredictor2(reference)
+
+
+print(kp2.predict_key(progression))
 # exit()
 # actual_key = f"{kp['key']} {kp['mode']}"
 # print(f"actual_key : {actual_key}")
