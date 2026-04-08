@@ -6,6 +6,9 @@ class ChordCanonizer:
     """
     ChordCanonizer for strict chord vocabulary (semantic validation):
     Decomposition of chords into properties, normalization and reconstruction
+
+    Args:
+        debugging (bool): Discarded remainder in parenthesis is added to the unclear property of the chord
     """
 
     # Pattern recognition ----
@@ -55,8 +58,9 @@ class ChordCanonizer:
         "+": "aug",
     }
 
-    def __init__(self):
+    def __init__(self, debugging: bool = False):
         self._cached_chords = {}
+        self.debugging = debugging
 
     # Public Method ----
     def canonize(self, txt: str):
@@ -102,25 +106,31 @@ class ChordCanonizer:
             "unclear": [],
         }
 
-        # Handle illegal substrings
-        chord = self._strip_paren_annotations(chord)
+        # Handle parenthesis content
+        remainder = None
+        if "(" in chord:
+            chord, remainder = self._strip_parent_annotations(chord)
+
+        if remainder and self.debugging:
+            decomp_chord["unclear"].append(remainder)
+
         chord = chord.replace("(", "").replace(")", "")
 
-        slash_tokens = None  # []
-
         # Slash handling
+        slash_tokens = None
         if "/" in chord:
             parts = chord.split("/")
 
-            chord = "".join(parts[0:-1])  # Allows multiple slashes
+            # Allows multiple slashes for later tokenization
+            chord = "".join(parts[0:-1])
 
+            # Only last slash is considered as real slash bass
             slash_bass_candidate = parts[-1]
 
             if self.ROOT_REGEX.match(slash_bass_candidate):
                 decomp_chord["slash"] = slash_bass_candidate
             else:
                 slash_tokens = slash_bass_candidate
-                # slash_tokens.append(slash_bass_candidate)
 
         # Root handling
         root_capture = self.ROOT_REGEX.match(chord)
@@ -161,7 +171,7 @@ class ChordCanonizer:
 
         return decomp_chord
 
-    def _eval_parenthesis_content(self, p_content: str) -> str:
+    def _eval_parent_content(self, p_content: str) -> str:
         """
         Check whether a parenthesis content string is fully composed of valid chord tokens.
 
@@ -176,9 +186,9 @@ class ChordCanonizer:
             "strum" → False  (no match at all)
             "4x"    → False  (remainder "x" after matching "4")
         """
-
         # Iterate through the chord string consuming 1 token at the time from left to right.
         # Example: "maj7" → match "maj", remainder "7" → match "7", no remainder → exit
+        p_content = p_content.replace("/", "")
         while p_content:
             match = self.SPLIT_REGEX.match(p_content)
             if not match:
@@ -186,7 +196,7 @@ class ChordCanonizer:
             p_content = p_content[match.end() :]
         return True
 
-    def _strip_paren_annotations(self, chord: str) -> str:
+    def _strip_parent_annotations(self, chord: str) -> str:
         """
         Remove parenthetical annotations that do not contain valid chord content.
 
@@ -201,15 +211,15 @@ class ChordCanonizer:
             "A(min)"    → "A(min)"
             "Cmaj(add9" → "Cmaj(add9)"  (no change, not a closed parenthetical)
         """
-
-        if "(" not in chord:
-            return chord
-
         for match in re.finditer(r"\(([^)]*)\)", chord):
             p_content = match.group(1)
-            if not self._eval_parenthesis_content(p_content):
-                chord = chord.replace(match.group(0), "")  # p_content)  # "")
-        return chord
+            remainder = None
+            if not self._eval_parent_content(p_content):
+                chord = chord.replace(match.group(0), "")
+                print(f"chord : {chord}")
+                remainder = match.group(0).replace("(", "").replace(")", "")
+                print(f"remainder : {remainder}")
+        return chord, remainder
 
     def _normalize(self, decomp_chord: dict) -> dict:
         # normalize extensions
@@ -388,6 +398,7 @@ class ChordCanonizer:
     def _num_sort(self, txt: str):
         """
         Sort modifiers lists like `["add9", "add2", "add13"]` or alterations `[b9, #11]`
+        Use this to generate index of dict.
         """
         numb = re.search(r"\d+", txt)
 
