@@ -216,9 +216,7 @@ class ChordCanonizer:
             remainder = None
             if not self._eval_parent_content(p_content):
                 chord = chord.replace(match.group(0), "")
-                print(f"chord : {chord}")
                 remainder = match.group(0).replace("(", "").replace(")", "")
-                print(f"remainder : {remainder}")
         return chord, remainder
 
     def _normalize(self, decomp_chord: dict) -> dict:
