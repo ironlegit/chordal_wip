@@ -276,6 +276,15 @@ def test_canonize_parenthesis_allowed():
     assert actual == expected, f"Expected {expected}, got {actual}"
 
 
+def test_canonize_parenthesis_allowed_w_separator():
+    test = "A4(7/9) G7M(9/13)"
+
+    actual = cc.canonize(test)
+    expected = "A(q3:maj)(q7:m)(m:add4)(e:9) G(q3:maj)(q7:maj)(e:9,13)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
 def test_canonize_parenthesis_illegal_strings_1():
     test = "A(strum) G(muted) D(let_ring) F(string2open) Bb(hold) E(palm-muted) E(PM)"
 
@@ -292,6 +301,26 @@ def test_canonize_parenthesis_illegal_strings_2():
 
     actual = cc.canonize(test)
     expected = "A(q3:maj) G(q3:maj) D#(q3:maj)/Bb F(q3:maj) Bb(q3:maj)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+# TODO: maybe fix this at some point
+def test_canonize_parenthesis_illegal_accidentals():
+    test = "A7(5b)"
+
+    actual = cc.canonize(test)
+    expected = "A(q3:maj)(q7:m)"
+
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_canonize_parenthesis_illegal_accidentals():
+    ccd = ChordCanonizer(debugging=True)
+    test = "A7(5b)"
+
+    actual = ccd.canonize(test)
+    expected = "A(q3:maj)(q7:m)(u:5b)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
