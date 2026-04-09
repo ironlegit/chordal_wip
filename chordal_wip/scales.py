@@ -5,13 +5,20 @@ import random
 from chordal_wip.helpers import rotate_list
 
 
+# TODO: Reconsider choice of objects for data
+
+
+# TODO: Remove unicode characters and consistent use of qualities (e.g. min > m)
+# TODO: Remove unicode characters and consistent use of qualities (e.g. min > m)
+# TODO: Remove unicode characters and consistent use of qualities (e.g. min > m)
+# TODO: Remove unicode characters and consistent use of qualities (e.g. min > m)
+# TODO: Remove unicode characters and consistent use of qualities (e.g. min > m)
 class Scale:
     """
     A class to represent musical scales, specifically church modes derived from the major scale.
     """
 
     # Class-level constants
-    # TODO: Use Enum for type safety?
     ALL_NOTES = np.array(
         ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
     )
@@ -67,6 +74,7 @@ class Scale:
 
 # TODO: Refactor
 class Chord:
+    # TODO: Doesnt do anything,
     # Define chord formulas as distances from the root (in semitones)
     CHORD_FORMULAS = {
         "maj": [0, 4, 7],  # Root, major 3rd, perfect 5th
@@ -78,7 +86,7 @@ class Chord:
     }
 
     # We need ionian triads and 7th chord to generate all chords for the modes using rotations
-    IONIAN_BASE_CHORDS = ["maj", "min", "min", "maj", "maj", "min", "dim"]
+    IONIAN_BASE_CHORDS = ["maj", "m", "m", "maj", "maj", "m", "dim"]
     IONIAN_7_CHORDS = ["maj7", "min7", "min7", "maj7", "7", "min7", "min7♭5"]
 
     # TODO: scale_type is just needed for filtering, maybe there is a better solution
@@ -186,42 +194,6 @@ class Chord:
             f"  Scale Type: {self.scale_type}\n"
             f"  Data: {self.data}\n"
         )
-
-    # def get_chord(self, degree, chord_type=None):
-    #     """
-    #     Get the notes of a chord for a given scale degree.
-    #     Args:
-    #         degree: Scale degree (1-7, where 1 is the root).
-    #         chord_type: Optional. If None, uses the diatonic chord quality for the mode.
-    #     Returns:
-    #         List of notes in the chord.
-    #     """
-    #     if chord_type is None:
-    #         chord_type = self.chord_qualities[degree - 1]
-    #
-    #     # Get the root note of the chord (e.g., degree=1 -> self.notes[0])
-    #     chord_root = self.notes[degree - 1]
-    #
-    #     # Find the index of the chord root in the full list of notes (ALL_NOTES)
-    #     root_index_in_all_notes = np.where(self.scale.ALL_NOTES == chord_root)[0][0]
-    #
-    #     # Calculate the indices of the chord notes in ALL_NOTES
-    #     chord_note_indices = [(root_index_in_all_notes + interval) % 12 for interval in self.CHORD_FORMULAS[chord_type]]
-    #
-    #     # Get the chord notes from ALL_NOTESq
-    #     chord_notes = self.scale.ALL_NOTES[chord_note_indices]
-    #
-    #     return chord_notes
-    #
-    # def get_chord_progression(self, progression):
-    #     """
-    #     Get the notes for a chord progression (e.g., [1, 4, 5]).
-    #     Args:
-    #         progression: List of scale degrees (e.g., [1, 4, 5]).
-    #     Returns:
-    #         List of chords (each chord is a list of notes).
-    #     """
-    #     return [self.get_chord(degree) for degree in progression]
 
 
 class ChordProgression(Chord):
