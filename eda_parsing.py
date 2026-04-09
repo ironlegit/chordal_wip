@@ -5,7 +5,6 @@ from chordal_wip.chordisolator import ChordIsolator
 df = pd.read_csv(
     "hf://datasets/lluccardoner/melodyGPT-song-chords-text-1/melodyGPT-song-chords-text-1.csv"
 )
-df.to_csv("lluccardoner-melodyGPT-song-chords-text-1.csv")
 df = pd.read_csv("lluccardoner-melodyGPT-song-chords-text-1.csv")
 df = df[df["chords_str"].notna()]
 
