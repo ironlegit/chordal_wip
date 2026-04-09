@@ -39,7 +39,7 @@ class ChordIsolator:
         # Slash Logic
         # Option 1: root (Cm7/G)
         # Option 2: extension with leading or trailing accidental
-        # Option 3: a qualityOR some random chord modifier (Cm7/b5)
+        # Option 3: a quality OR some random chord modifier (Cm7/b5)
         # Option 4: Some single alterations
 
         slash_content = rf"/(?:{root_note}|{alterations}?{extensions}{alterations}?|{qualities}|{alterations})+"

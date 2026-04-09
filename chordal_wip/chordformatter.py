@@ -29,8 +29,13 @@ class ChordFormatter:
         pass
 
 
-cf = ChordFormatter()
+# TODO: Apply to main dataset to do some test predictions!
+# TODO: Apply to main dataset to do some test predictions!
+# TODO: Apply to main dataset to do some test predictions!
+# TODO: Apply to main dataset to do some test predictions!
+# TODO: Apply to main dataset to do some test predictions!
+# TODO: Apply to main dataset to do some test predictions!
 
-chords = "C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m)"
-
-print(cf.format(chords))
+# cf = ChordFormatter()
+# chords = "C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m) C#(q3:m) F#(q3:maj) G#(q3:m)"
+# print(cf.format(chords))
