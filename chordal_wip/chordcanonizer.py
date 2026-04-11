@@ -404,3 +404,8 @@ class ChordCanonizer:
             return int(numb.group())
 
         return 999
+
+
+test = "Cdim7M"
+cc = ChordCanonizer()
+print(cc.canonize(test))

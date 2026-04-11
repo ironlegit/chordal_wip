@@ -82,7 +82,6 @@ class Chord:
         "maj7": [0, 4, 7, 11],  # Root, major 3rd, perfect 5th, major 7th
         "min7": [0, 3, 7, 10],  # Root, minor 3rd, perfect 5th, minor 7th
         "7": [0, 4, 7, 10],  # Root, major 3rd, perfect 5th, minor 7th
-        # Add more chord types as needed
     }
 
     # We need ionian triads and 7th chord to generate all chords for the modes using rotations
