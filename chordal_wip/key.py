@@ -3,6 +3,12 @@ import chordal_wip.scales as scales
 import pandas as pd
 
 
+# TODO: This is very slow
+# TODO: This is very slow
+# TODO: This is very slow
+# TODO: This is very slow
+# TODO: This is very slow
+# TODO: This is very slow
 class KeyPredictor:
     """
     A class for predicting key from a chord progression.
@@ -10,6 +16,7 @@ class KeyPredictor:
 
     def __init__(self):  # , reference: pd.DataFrame):
         self.reference = scales.get_ref_scales()
+        # Weight-matrix of all scales (rows) and all chords (cols)
         self.weights_df = pd.DataFrame.from_records(
             self.reference["chord_weights"]
         )
@@ -18,26 +25,21 @@ class KeyPredictor:
     def predict_key(self, chords: str) -> str:
         # TODO: The chords itself will also come as a Panda Series
         chords = pd.Series(chords.split(" "))
-        n_chords = len(chords)
-
-        # TODO: What to do with slash chords?
         # [chord for chord in chord_lst if "/" not in chord]
-        counts = chords.value_counts(ascending=False)
 
-        # Stats
+        n_chords = len(chords)
+        counts = chords.value_counts(ascending=False)
         proportions = counts / n_chords
 
         self._integrity_proportions(proportions)
 
-        # Creates a weight-matrix of all scales (rows) and all chords (cols)
+        # Multiply chord proportions by weights of all scales (only matching chords)
         scores = (self.weights_df.mul(proportions, axis=1)).sum(axis=1)
 
-        # TODO: this is a bit confusing...
-        ref = self.reference
-        ref["scores"] = scores.values
-        key_mode = self.reference.loc[scores.idxmax(), ["key", "mode"]]
-
-        return f"{key_mode['key']} {key_mode['mode']}"
+        # TODO: What about ties?
+        max_score_idx = scores.idxmax()
+        ref_max = self.reference.loc[max_score_idx, ["key", "mode"]]
+        return f"{ref_max['key']} {ref_max['mode']}"
 
     # Private methods
     # TODO: RM once slash handling is clear!
@@ -48,13 +50,17 @@ class KeyPredictor:
             raise ValueError(f"Proportions do not sum to 1, got {sum_to_one}")
 
     def __str__(self):
-        return (
-            f"Chord Progression:\n{self.chord_proportions}\n"
-            f"Best Matching Scale: {self.top_scale['key']} {self.top_scale['mode']}"
-        )
+        return f"Chord Progression:\n{self.reference}"
 
 
-# progression = "Cmaj Gmaj Am Fmaj Cmaj Fmaj Cmaj Fmaj Cmaj Gmaj Am Fmaj"
+# progression = pd.DataFrame(
+#     {
+#         "chords": [
+#             "Cmaj Gmaj Am",
+#             "Fmaj Cmaj Fmaj Cmaj",
+#             "Fmaj Cmaj Gmaj Am Fmaj",
+#         ]
+#     }
+# )
 # kp2 = KeyPredictor()
-# x = kp2.predict_key(progression)
-# print(x)
+# print(progression["chords"].apply(kp2.predict_key))
