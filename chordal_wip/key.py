@@ -3,6 +3,30 @@ import pandas as pd
 from collections import Counter
 from scipy.sparse import csr_matrix
 import numpy as np
+from dataclasses import dataclass
+
+
+@dataclass
+class KeyPrediction:
+    """Result of one key prediction.
+
+    @dataclass auto-generates __init__, __repr__ and __eq__ from these
+    typed fields - so printing a KeyPrediction (in tests, in the debugger)
+    shows everything without writing any boilerplate.
+    """
+
+    tonic: str  # root key
+    mode: str  # currently "ionian" or "aeolian"
+    scores: np.ndarray  # raw key prediction score per reference key
+    n_chords: int  # length of input chord progression
+    oov_fraction: float  # fraction of tokens that are broken
+
+    @property
+    def label(self) -> str:
+        """
+        Human-readable key output, e.g. 'C ionian'.
+        """
+        return f"{self.tonic} {self.mode}"
 
 
 class KeyPredictor:
