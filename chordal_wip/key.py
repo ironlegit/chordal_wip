@@ -53,7 +53,7 @@ class KeyPredictor:
         self.n_scales = len(self.reference)
 
     # Public methods
-    def predict_key(self, chords: str) -> str | None:
+    def predict(self, chords: str) -> KeyPrediction | None:
         chord_list = chords.split()
 
         if not chord_list:
@@ -80,7 +80,21 @@ class KeyPredictor:
         max_score_idx = np.argmax(scores)
 
         ref_max = self.reference.iloc[max_score_idx]
-        return f"{ref_max['key']} {ref_max['mode']}"
+        return KeyPrediction(
+            tonic=ref_max["key"],
+            mode=ref_max["mode"],
+            scores=scores,
+            n_chords=n_chords,
+            oov_fraction=1 - n_known / n_chords,
+        )
+
+    def predict_key(self, chords: str) -> str | None:
+        """
+        Convenience wrapper: just the label. Existing call sites keep
+        working unchanged - new code should prefer predict().
+        """
+        prediction = self.predict(chords)
+        return prediction.label if prediction else None
 
     def __str__(self):
         return f"Chord Progression:\n{self.reference}"
