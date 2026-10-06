@@ -58,22 +58,6 @@ class KeyPredictor:
         ref_max = self.reference.iloc[max_score_idx]
         return f"{ref_max['key']} {ref_max['mode']}"
 
-    # OLD AND SLOW
-    def predict_key2(self, chords: str) -> str:
-        chords = pd.Series(chords.split(" "))
-
-        n_chords = len(chords)
-        counts = chords.value_counts(ascending=False)
-        proportions = counts / n_chords
-
-        # Multiply chord proportions by weights of all scales (only matching chords)
-        scores = (self.weights_df.mul(proportions, axis=1)).sum(axis=1)
-
-        # Note: In case of ties, the first idx is considered
-        max_score_idx = scores.idxmax()
-        ref_max = self.reference.loc[max_score_idx, ["key", "mode"]]
-        return f"{ref_max['key']} {ref_max['mode']}"
-
     def __str__(self):
         return f"Chord Progression:\n{self.reference}"
 
