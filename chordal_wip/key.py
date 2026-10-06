@@ -6,6 +6,13 @@ import numpy as np
 from dataclasses import dataclass
 
 
+# Map note names to pitch classes (C=0, C#=1, ..., B=11).
+# This is used to measure distance between keys and note names
+NOTE_TO_PITCH_CLASS = {
+    note: pc for pc, note in enumerate(scales.Scale.ALL_NOTES.tolist())
+}
+
+
 def _softmax(x: np.ndarray) -> np.ndarray:
     """
     Convert raw scores into probabilities that sum to 1.
@@ -21,6 +28,41 @@ def _softmax(x: np.ndarray) -> np.ndarray:
     """
     e = np.exp(x - x.max())
     return e / e.sum()
+
+
+def key_relation(tonic_a: str, mode_a: str, tonic_b: str, mode_b: str) -> str:
+    """
+    Classify how two keys are related.
+
+    Returns 'exact', 'relative', 'parallel', 'fifth' or 'other'.
+
+    Why this matters: predicting 'C ionian' for a song really in A
+    aeolian (its relative pair) is a benign error, since both keys contain
+    exactly the same chords. Confusing C ionian with F# aeolian is not.
+    """
+    if (tonic_a, mode_a) == (tonic_b, mode_b):
+        return "exact"
+
+    # Calculate distance around 12-semitone circle
+    d = (NOTE_TO_PITCH_CLASS[tonic_a] - NOTE_TO_PITCH_CLASS[tonic_b]) % 12
+
+    # Find shortest way around the circle
+    distance = min(d, 12 - d)
+    modes_differ = mode_a != mode_b
+
+    # same tonic, different mode (C ionian vs C aeolian)
+    if distance == 0 and modes_differ:
+        return "parallel"
+
+    # relative major/minor (C ionian vs A aeolian)
+    if distance == 3 and modes_differ:
+        return "relative"
+
+    # dominant or subdominant (C ionian vs G or F ionian)
+    if distance == 5:
+        return "fifth"
+
+    return "other"
 
 
 @dataclass
