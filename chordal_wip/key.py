@@ -31,7 +31,7 @@ class KeyPredictor:
         self.n_scales = len(self.reference)
 
     # Public methods
-    def predict_key(self, chords: str) -> str:
+    def predict_key(self, chords: str) -> str | None:
         chord_list = chords.split()
 
         if not chord_list:
