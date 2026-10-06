@@ -21,9 +21,7 @@ class KeyPredictor:
 
         # Init pre-allocated arrays for chord proportion computation
         self.chord_columns = self.weights_df.columns
-        self.chord_to_idx = {
-            chord: idx for idx, chord in enumerate(self.chord_columns)
-        }
+        self.chord_to_idx = {chord: idx for idx, chord in enumerate(self.chord_columns)}
         self.len_prop_vector = len(self.chord_columns)
 
         # Sparse matrix only stores position of non-zero values
@@ -42,9 +40,16 @@ class KeyPredictor:
 
         # Build proportion vector
         prop_vector = np.zeros(self.len_prop_vector)
+        n_known = 0
+
         for chord, count in counts.items():
             if chord in self.chord_to_idx:
                 prop_vector[self.chord_to_idx[chord]] = count / n_chords
+                n_known += count
+
+        # Avoid returning first scale (i.e. C ionian) if all chords are broken
+        if n_known == 0:
+            return None
 
         # Compute scores
         scores = self.weights_sparse.dot(prop_vector)
