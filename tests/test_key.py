@@ -1,8 +1,27 @@
 from chordal_wip.key import KeyPredictor
 
+from chordal_wip.key import KeyPredictor, key_relation
 import pytest
 
 kp = KeyPredictor()
+
+
+# To avoid individual tests
+@pytest.mark.parametrize(
+    "key_a, key_b, expected",
+    [
+        (("C", "ionian"), ("C", "ionian"), "exact"),
+        (("C", "ionian"), ("A", "aeolian"), "relative"),
+        (("C", "ionian"), ("C", "aeolian"), "parallel"),
+        (("C", "ionian"), ("G", "ionian"), "fifth"),
+        (("C", "ionian"), ("F", "ionian"), "fifth"),
+        (("C", "ionian"), ("F#", "aeolian"), "other"),
+        # Tricky: a minor third apart, but same mode is NOT a relative pair
+        (("C", "ionian"), ("A", "ionian"), "other"),
+    ],
+)
+def test_key_relation(key_a, key_b, expected):
+    assert key_relation(key_a[0], key_a[1], key_b[0], key_b[1]) == expected
 
 
 def test_C_ionian_key_prediction():
