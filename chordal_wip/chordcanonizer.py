@@ -58,6 +58,18 @@ class ChordCanonizer:
         "+": "aug",
     }
 
+    # One canonical spelling per pitch class: sharps. Lossless in 12-TET:
+    # Bb and A# are the same frequency; this is a relabeling, not a change.
+    FLAT_TO_SHARP = {
+        "Bb": "A#",
+        "Eb": "D#",
+        "Ab": "G#",
+        "Db": "C#",
+        "Gb": "F#",
+        "Cb": "B",
+        "Fb": "E",
+    }
+
     def __init__(self, debugging: bool = False):
         self._cached_chords = {}
         self.debugging = debugging
@@ -128,7 +140,9 @@ class ChordCanonizer:
             slash_bass_candidate = parts[-1]
 
             if self.ROOT_REGEX.match(slash_bass_candidate):
-                decomp_chord["slash"] = slash_bass_candidate
+                decomp_chord["slash"] = self.FLAT_TO_SHARP.get(
+                    slash_bass_candidate, slash_bass_candidate
+                )
             else:
                 slash_tokens = slash_bass_candidate
 
@@ -139,7 +153,7 @@ class ChordCanonizer:
             return decomp_chord
 
         root = root_capture.group(0)
-        decomp_chord["root"] = root
+        decomp_chord["root"] = self.FLAT_TO_SHARP.get(root, root)
 
         # Modifier handling
         remainder = chord[len(root) :]
@@ -307,9 +321,7 @@ class ChordCanonizer:
         )
 
         if has_seventh:
-            new_extensions = [
-                ext for ext in new_extensions if self._num_sort(ext) != 7
-            ]
+            new_extensions = [ext for ext in new_extensions if self._num_sort(ext) != 7]
 
             q, q5 = decomp_chord["quality"], decomp_chord["quality_5th"]
 
@@ -330,9 +342,7 @@ class ChordCanonizer:
         if decomp_chord["quality_5th"] == "aug" and not decomp_chord["quality"]:
             decomp_chord["quality"] = "maj"
             # TODO: remove explicit 5 if the chord is aug, example C+5.
-            new_extensions = [
-                ext for ext in new_extensions if self._num_sort(ext) != 5
-            ]
+            new_extensions = [ext for ext in new_extensions if self._num_sort(ext) != 5]
 
         # Fallback: any remaining chord without an explicit quality defaults to major
         # Excludes dim (quality_5th set) and sus/aug (quality already set above)
@@ -352,9 +362,7 @@ class ChordCanonizer:
                 decomp_chord["unclear"] = decomp_chord["no"]
                 decomp_chord["no"] = None
 
-        decomp_chord["extensions"] = sorted(
-            set(new_extensions), key=self._num_sort
-        )
+        decomp_chord["extensions"] = sorted(set(new_extensions), key=self._num_sort)
         return decomp_chord
 
     # What is the benefit from decomposing > string > reformatting?
