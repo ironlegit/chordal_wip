@@ -369,3 +369,24 @@ def test_canonize_wrong_canonizations():
     expected = " ".join(expected_list)
 
     assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_enharmonic_roots_canonicalize_identically():
+    # Same chord, two spellings -> identical canonical output
+    assert cc.canonize("Bbmaj7") == cc.canonize("A#maj7")
+    assert cc.canonize("Cmaj/Eb") == cc.canonize("Cmaj/D#")
+
+
+def test_interval_flats_survive_canonicalization():
+    # b5 is an INTERVAL, not a spelling - must never be mapped
+    assert cc.canonize("Cm7b5") == cc.canonize("Cm7b5")
+    # i.e. output keeps (q5:dim); root stays C
+    assert "q5:dim" in cc.canonize("Cm7b5")
+
+
+def test_flat_root_with_flat_extension():
+    # The stress case: flat root AND flat interval in one chord
+    out_flat = cc.canonize("Ebm7b5")
+    out_sharp = cc.canonize("D#m7b5")
+    assert out_flat == out_sharp  # roots agree
+    assert "b5" in out_flat or "q5:dim" in out_flat  # interval preserved
