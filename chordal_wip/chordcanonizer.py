@@ -1,4 +1,6 @@
 import re
+from typing import ClassVar
+
 import pandas as pd
 
 
@@ -39,7 +41,7 @@ class ChordCanonizer:
         re.VERBOSE,
     )
 
-    ALLOWED_QUALITIES = {
+    ALLOWED_QUALITIES: ClassVar[dict[str, str]] = {
         "min": "m",
         "m": "m",
         "-": "m",
@@ -52,7 +54,7 @@ class ChordCanonizer:
         "sus2": "sus2",
     }
 
-    ALLOWED_QUALITIES_5TH = {
+    ALLOWED_QUALITIES_5TH: ClassVar[dict[str, str]] = {
         "dim": "dim",
         "aug": "aug",
         "+": "aug",
@@ -60,7 +62,7 @@ class ChordCanonizer:
 
     # One canonical spelling per pitch class: sharps. Lossless in 12-TET:
     # Bb and A# are the same frequency; this is a relabeling, not a change.
-    FLAT_TO_SHARP = {
+    FLAT_TO_SHARP: ClassVar[dict[str, str]] = {
         "Bb": "A#",
         "Eb": "D#",
         "Ab": "G#",
