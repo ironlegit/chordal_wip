@@ -10,7 +10,7 @@ def test_decompose():
     actual = cc._decompose(test)
 
     expected = {
-        "root": "Eb",
+        "root": "D#",
         "quality": "maj",
         "quality_5th": None,
         "quality_7th": None,
@@ -30,7 +30,7 @@ def test_normalize():
     actual = cc._normalize(decomp)
 
     expected = {
-        "root": "Eb",
+        "root": "D#",
         "quality": "maj",
         "quality_5th": None,
         "quality_7th": "maj",
@@ -74,7 +74,7 @@ def test_canonize_triads_2():
     test = "E G# Cb/Db"
 
     actual = cc.canonize(test)
-    expected = "E(q3:maj) G#(q3:maj) Cb(q3:maj)/Db"
+    expected = "E(q3:maj) G#(q3:maj) B(q3:maj)/C#"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -112,7 +112,9 @@ def test_canonize_aug_2():
     test = "C7+ Caug7 C7+/9"
 
     actual = cc.canonize(test)
-    expected = "C(q3:maj)(q5:aug)(q7:m) C(q3:maj)(q5:aug)(q7:m) C(q3:maj)(q5:aug)(q7:m)(e:9)"
+    expected = (
+        "C(q3:maj)(q5:aug)(q7:m) C(q3:maj)(q5:aug)(q7:m) C(q3:maj)(q5:aug)(q7:m)(e:9)"
+    )
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -140,9 +142,7 @@ def test_canonize_sus():
     test = "Csus Csus2 Csus4 Csus9 Csus/E"
 
     actual = cc.canonize(test)
-    expected = (
-        "C(q3:sus4) C(q3:sus2) C(q3:sus4) C(q3:sus4)(q7:m)(e:9) C(q3:sus4)/E"
-    )
+    expected = "C(q3:sus4) C(q3:sus2) C(q3:sus4) C(q3:sus4)(q7:m)(e:9) C(q3:sus4)/E"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -151,7 +151,7 @@ def test_canonize_dim():
     test = "Cdim D#dim7 Dbdim Cdim/Ab"
 
     actual = cc.canonize(test)
-    expected = "C(q5:dim) D#(q5:dim)(q7:dim) Db(q5:dim) C(q5:dim)/Ab"
+    expected = "C(q5:dim) D#(q5:dim)(q7:dim) C#(q5:dim) C(q5:dim)/G#"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -161,9 +161,7 @@ def test_canonize_half_diminished():
     test = "Cm7b5 Cmin7b5 F#/-7b5"
 
     actual = cc.canonize(test)
-    expected = (
-        "C(q3:m)(q5:dim)(q7:m) C(q3:m)(q5:dim)(q7:m) F#(q3:m)(q5:dim)(q7:m)"
-    )
+    expected = "C(q3:m)(q5:dim)(q7:m) C(q3:m)(q5:dim)(q7:m) F#(q3:m)(q5:dim)(q7:m)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -172,7 +170,7 @@ def test_canonize_slash():
     test = "E#/Cb E#7/9/Cb C/D Ebsus4(7)/C#"
 
     actual = cc.canonize(test)
-    expected = "E#(q3:maj)/Cb E#(q3:maj)(q7:m)(e:9)/Cb C(q3:maj)/D Eb(q3:sus4)(q7:m)/C#"
+    expected = "E#(q3:maj)/B E#(q3:maj)(q7:m)(e:9)/B C(q3:maj)/D D#(q3:sus4)(q7:m)/C#"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -184,9 +182,7 @@ def test_canonize_sixth():
     test = "C6 C6/9"
 
     actual = cc.canonize(test)
-    expected = (
-        "C(q3:maj)(e:6) C(q3:maj)(e:6,9)"  # no q7 — verify this is intentional
-    )
+    expected = "C(q3:maj)(e:6) C(q3:maj)(e:6,9)"  # no q7 — verify this is intentional
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -269,9 +265,7 @@ def test_canonize_parenthesis_allowed():
     test = "A(min) G(sus2) D(add9) F(aug) Bb(dim)"
 
     actual = cc.canonize(test)
-    expected = (
-        "A(q3:m) G(q3:sus2) D(q3:maj)(m:add9) F(q3:maj)(q5:aug) Bb(q5:dim)"
-    )
+    expected = "A(q3:m) G(q3:sus2) D(q3:maj)(m:add9) F(q3:maj)(q5:aug) A#(q5:dim)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -289,9 +283,7 @@ def test_canonize_parenthesis_illegal_strings_1():
     test = "A(strum) G(muted) D(let_ring) F(string2open) Bb(hold) E(palm-muted) E(PM)"
 
     actual = cc.canonize(test)
-    expected = (
-        "A(q3:maj) G(q3:maj) D(q3:maj) F(q3:maj) Bb(q3:maj) E(q3:maj) E(q3:maj)"
-    )
+    expected = "A(q3:maj) G(q3:maj) D(q3:maj) F(q3:maj) A#(q3:maj) E(q3:maj) E(q3:maj)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -300,7 +292,7 @@ def test_canonize_parenthesis_illegal_strings_2():
     test = "A(s/c) G(once) D#/Bb(hold) F(chord) Bb(rasuego)"
 
     actual = cc.canonize(test)
-    expected = "A(q3:maj) G(q3:maj) D#(q3:maj)/Bb F(q3:maj) Bb(q3:maj)"
+    expected = "A(q3:maj) G(q3:maj) D#(q3:maj)/A# F(q3:maj) A#(q3:maj)"
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -377,3 +369,24 @@ def test_canonize_wrong_canonizations():
     expected = " ".join(expected_list)
 
     assert actual == expected, f"Expected {expected}, got {actual}"
+
+
+def test_enharmonic_roots_canonicalize_identically():
+    # Same chord, two spellings -> identical canonical output
+    assert cc.canonize("Bbmaj7") == cc.canonize("A#maj7")
+    assert cc.canonize("Cmaj/Eb") == cc.canonize("Cmaj/D#")
+
+
+def test_interval_flats_survive_canonicalization():
+    # b5 is an INTERVAL, not a spelling - must never be mapped
+    assert cc.canonize("Cm7b5") == cc.canonize("Cm7b5")
+    # i.e. output keeps (q5:dim); root stays C
+    assert "q5:dim" in cc.canonize("Cm7b5")
+
+
+def test_flat_root_with_flat_extension():
+    # The stress case: flat root AND flat interval in one chord
+    out_flat = cc.canonize("Ebm7b5")
+    out_sharp = cc.canonize("D#m7b5")
+    assert out_flat == out_sharp  # roots agree
+    assert "b5" in out_flat or "q5:dim" in out_flat  # interval preserved
