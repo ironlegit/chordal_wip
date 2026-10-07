@@ -1,7 +1,7 @@
 from typing import ValuesView
 import pandas as pd
 import numpy as np
-import random
+import functools
 from chordal_wip.helpers import rotate_list
 
 
@@ -208,18 +208,14 @@ class ChordProgression(Chord):
         for i in range(n_chords):
             if i == 0:
                 next_chord = tonic_chords.sample(n=1)
-            elif (
-                i == n_chords - 1 and not progression["name"].eq("tonic").any()
-            ):
+            elif i == n_chords - 1 and not progression["name"].eq("tonic").any():
                 next_chord = tonic_chords[tonic_chords["name"] == "tonic"]
             elif progression["tension"].sum() <= 0:
                 next_chord = all_dominant_chords.sample(n=1)
             else:
                 next_chord = tonic_chords.sample(n=1)
 
-            progression = pd.concat(
-                [progression, next_chord], ignore_index=True
-            )
+            progression = pd.concat([progression, next_chord], ignore_index=True)
 
         return progression
 
@@ -239,9 +235,7 @@ class MarkovChordProgression(Chord):
         Set initial state probaility vector
         """
         tension = self.data["tension"].values * -1
-        tension_min_max = (tension - min(tension)) / (
-            max(tension) - min(tension)
-        )
+        tension_min_max = (tension - min(tension)) / (max(tension) - min(tension))
         tension_norm = tension_min_max / sum(tension_min_max)
         return tension_norm
 
@@ -292,9 +286,7 @@ class MarkovChordProgression(Chord):
         progression = np.empty(n_chords, dtype=int)
 
         # Add first chord (first state)
-        progression[0] = np.random.choice(
-            chord_idx, size=1, p=self.intial_state
-        )
+        progression[0] = np.random.choice(chord_idx, size=1, p=self.intial_state)
 
         for i in range(1, n_chords):
             last_chord_idx = progression[i - 1]
@@ -308,44 +300,53 @@ class MarkovChordProgression(Chord):
         return out
 
 
-# Lazy init ----
-_ref_scales = None
+# Reference Scales ----
+
+# Candidate upgrade once the Isophonics/Beatles benchmark is running,
+# inspired by Krumhansl's stability ratings (I > V > IV > vi > ii > iii > vii):
+#     KRUMHANSL_PROFILE = (6.0, 1.8, 1.5, 4.5, 4.2, 2.5, 1.4)
+DEFAULT_CHORD_PROFILE = (2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+
+MODES = ("ionian", "aeolian")
 
 
-# TODO: decide how to handle weights
-def generate_ref_scales():
-    modes = ["ionian", "aeolian"]
-    keys = Scale.ALL_NOTES
-    chord_type = "triads"
-    # Current rationale: Favor tonic to avoid introducing genre-specific bias
-    weights = [2, 1, 1, 1, 1, 1, 1]
+def generate_ref_scales(
+    chord_profile: tuple[float, ...] = DEFAULT_CHORD_PROFILE,
+    chord_type: str = "triads",
+) -> pd.DataFrame:
+    """
+    Build the reference table: one row per (mode, tonic) with chord weights.
 
+    Args:
+        chord_profile: weight per diatonic chord, ordered
+            [tonic, ii, iii, IV, V, vi, vii].
+        chord_type: which chord set to take from the Scale object.
+    """
     ref_scales_list = []
 
-    for mode in modes:
-        for key in keys:
+    for mode in MODES:
+        for key in Scale.ALL_NOTES:
             scale_chords = Chord(Scale(key, mode)).data[chord_type].tolist()
+
+            # Check for when testing profiles
+            assert len(scale_chords) == len(chord_profile)
+
             ref_scales_list.append(
                 {
                     "key": key,
                     "mode": mode,
-                    "chord_weights": {
-                        chord: weight
-                        for (chord, weight) in zip(scale_chords, weights)
-                    },
+                    "chord_weights": dict(zip(scale_chords, chord_profile)),
                 }
             )
 
     return pd.DataFrame(ref_scales_list)
 
 
-def get_ref_scales():
+@functools.cache
+def get_ref_scales() -> pd.DataFrame:
     """
-    Return the cached scales dictionary. If it hasn't been generated yet, generate it first.
+    Return the cached reference scales, computing them on first call.
+
+    Should stay as read-only. Otherwise create a .copy().
     """
-    global _ref_scales
-
-    if _ref_scales is None:
-        _ref_scales = generate_ref_scales()
-
-    return _ref_scales
+    return generate_ref_scales()
