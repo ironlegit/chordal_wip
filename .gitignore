@@ -215,7 +215,7 @@ __marimo__/
 # table files
 *.csv
 *lock.*
-
+*.parquet
 
 # quarto stuff
 *.html
