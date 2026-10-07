@@ -130,6 +130,9 @@ class KeyPredictor:
         self.weights_sparse = csr_matrix(self.weights_df.values)
         self.n_scales = len(self.reference)
 
+        # (tonic, mode) per reference row, aligned with the probs vector.
+        self.ref_keys = list(zip(self.reference["key"], self.reference["mode"]))
+
     # Public methods
     def predict(self, chords: str) -> KeyPrediction | None:
         chord_list = chords.split()
@@ -177,15 +180,72 @@ class KeyPredictor:
         prediction = self.predict(chords)
         return prediction.label if prediction else None
 
+    RESULT_COLUMNS = [
+        "song_id",
+        "label",
+        "p_top1",
+        "label_top2",
+        "p_top2",
+        "top2_relation",
+        "margin",
+        "oov_fraction",
+        "n_chords",
+    ]
+
+    def predict_all(self, progressions: pd.Series) -> pd.DataFrame:
+        """
+        Predict keys for many songs at once, assuming one row per song.
+
+        Args:
+            progressions: Series mapping song id -> chord progression string.
+                The song id lives in the Series index, so e.g.:
+                kp.predict_all(df.set_index("title")["progression_simple"])
+
+        Returns:
+            DataFrame with RESULT_COLUMNS.
+
+        The 24-value probability vectors are not stored. Use predict() to inspect a single song.
+        """
+
+        rows = []
+        for song_id, chords in progressions.items():
+            prediction = self.predict(chords)
+            if prediction is None:
+                # Keep row-space unchanged
+                rows.append({"song_id": song_id, "label": None})
+                continue
+
+            # stable in order to keep original relative order for ties
+            top2_idx = np.argsort(prediction.probs, stable=True, descending=True)[:2]
+            tonic2, mode2 = self.ref_keys[top2_idx[1]]
+
+            rows.append(
+                {
+                    "song_id": song_id,
+                    "label": prediction.label,
+                    "p_top1": round(prediction.confidence, 4),
+                    "label_top2": f"{tonic2} {mode2}",
+                    "p_top2": round(float(prediction.probs[top2_idx[1]]), 4),
+                    "top2_relation": key_relation(
+                        prediction.tonic, prediction.mode, tonic2, mode2
+                    ),
+                    "margin": round(prediction.margin, 4),
+                    "oov_fraction": round(prediction.oov_fraction, 4),
+                    "n_chords": prediction.n_chords,
+                }
+            )
+
+        return pd.DataFrame(rows, columns=self.RESULT_COLUMNS)
+
     def __str__(self):
         return f"Chord Progression:\n{self.reference}"
 
 
-kp = KeyPredictor()
-clear = kp.predict("Cmaj Gmaj Am Fmaj Cmaj Fmaj Cmaj Gmaj Cmaj")
-tie = kp.predict("Cmaj Am Fmaj Gmaj")
-print(clear.label, round(clear.confidence, 3), round(clear.margin, 3))
-print(tie.label, round(tie.confidence, 3), round(tie.margin, 3))
+# kp = KeyPredictor()
+# clear = kp.predict("Cmaj Gmaj Am Fmaj Cmaj Fmaj Cmaj Gmaj Cmaj")
+# tie = kp.predict("Cmaj Am Fmaj Gmaj")
+# print(clear.label, round(clear.confidence, 3), round(clear.margin, 3))
+# print(tie.label, round(tie.confidence, 3), round(tie.margin, 3))
 
 # kp = KeyPredictor()
 # progression = "Dm Dm Amaj Gmaj Dm Dm Amaj Gmaj Bm Amaj Gmaj Amaj Dm Dm Amaj Gmaj Bm Amaj Gmaj Amaj Dm Dm Amaj Gmaj Bm Amaj Gmaj Amaj Dm"
