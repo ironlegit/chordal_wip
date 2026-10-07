@@ -2,6 +2,7 @@ from chordal_wip.key import KeyPredictor
 
 from chordal_wip.key import KeyPredictor, key_relation
 import pytest
+import pandas as pd
 
 kp = KeyPredictor()
 
@@ -80,8 +81,46 @@ def test_confidence_and_margin_ranges():
 
 def test_margin_near_zero_for_relative_tie():
     # All four chords are diatonic in BOTH C ionian and A aeolian, and
-    # Cmaj/Am swap the tonic/vi roles - so the two keys score equally.
-    # The margin is the model's way of saying "I honestly don't know."
+    # Cmaj/Am swap the tonic/vi roles, so the two keys score equally.
     pred = kp.predict("Cmaj Am Fmaj Gmaj")
     assert pred is not None
     assert pred.margin == pytest.approx(0.0, abs=1e-9)
+
+
+def test_predict_all_basic():
+    progressions = pd.Series(
+        {
+            "song_1": "Cmaj Gmaj Am Fmaj Cmaj Fmaj Cmaj Gmaj Cmaj",
+            "song_2": "Cmaj Am Fmaj Gmaj",
+            "song_3": "Xy Zq",
+        }
+    )
+    result = kp.predict_all(progressions)
+
+    assert len(result) == 3
+    assert list(result.columns) == kp.RESULT_COLUMNS  # schema contract
+    assert result["label"].iloc[0] == "C ionian"
+
+    unusable = result[result["label"].isna()]
+    assert unusable["song_id"].tolist() == ["song_3"]  # aligned with input
+
+
+def test_predict_all_tie_is_consistent_with_predict():
+    # The exact tie: top2_relation must be 'relative', margin ~ 0,
+    # and predict_all's top-1 must agree with predict() (same tiebreak).
+    tie = "Cmaj Am Fmaj Gmaj"
+    result = kp.predict_all(pd.Series({"song_2": tie}))
+
+    row = result.iloc[0]
+    assert row["top2_relation"] == "relative"
+    assert row["margin"] == pytest.approx(0.0, abs=1e-9)
+    assert row["label"] == kp.predict(tie).label
+    assert row["label_top2"] == "A aeolian"
+
+
+def test_predict_all_never_reports_exact():
+    progressions = pd.Series(
+        {"a": "Cmaj Gmaj Am Fmaj Cmaj", "b": "Dm Dm Amaj Gmaj", "c": "Em Gmaj"}
+    )
+    result = kp.predict_all(progressions)
+    assert (result["top2_relation"] != "exact").all()
