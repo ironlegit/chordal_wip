@@ -49,9 +49,7 @@ class ChordProcessingPipeline:
             "CPP: Starting canonization...",
         )
         start_time = time.time()
-        df["chords_canonized"] = df["chords_isolated"].apply(
-            self.canonizer.canonize
-        )
+        df["chords_canonized"] = df["chords_isolated"].apply(self.canonizer.canonize)
         duration = time.time() - start_time
         print(f"CPP: Canonization complete ({duration:.3f}s)")
 
@@ -65,22 +63,20 @@ class ChordProcessingPipeline:
             "CPP: Starting formatting...",
         )
         start_time = time.time()
-        df["chords_simplified"] = df["chords_canonized"].apply(
-            self.formatter.format
-        )
+        df["chords_simplified"] = df["chords_canonized"].apply(self.formatter.format)
         duration = time.time() - start_time
         print(f"CPP: Formatting complete ({duration:.3f}s)")
 
         # KeyPrediction ----
-        self._print_header(
-            "Key Prediction",
-            "CPP: Predicting keys...",
-        )
-        start_time = time.time()
-        df["key"] = df["chords_simplified"].apply(self.keypredictor.predict_key)
-        duration = time.time() - start_time
-        print(f"CPP: Key prediction complete ({duration:.3f}s)")
-
-        print(f"CPP: Processed {len(df)} rows")
+        # self._print_header(
+        #     "Key Prediction",
+        #     "CPP: Predicting keys...",
+        # )
+        # start_time = time.time()
+        # df["key"] = df["chords_simplified"].apply(self.keypredictor.predict_key)
+        # duration = time.time() - start_time
+        # print(f"CPP: Key prediction complete ({duration:.3f}s)")
+        #
+        # print(f"CPP: Processed {len(df)} rows")
 
         return df
