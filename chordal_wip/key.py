@@ -112,9 +112,14 @@ class KeyPredictor:
     A class for predicting key from a chord progression.
     """
 
-    def __init__(self):
+    def __init__(self, reference: pd.DataFrame | None = None):
+        """
+        Args:
+            reference: custom reference table with the same schema as
+                get_ref_scales() output. Defaults to the standard one.
+        """
         # Reference containing scale definition for all keys
-        self.reference = scales.get_ref_scales()
+        self.reference = reference if reference is not None else scales.get_ref_scales()
 
         # Weight-matrix of all scales (rows) and all chords (cols) >> very sparse
         self.weights_df = pd.DataFrame.from_records(
