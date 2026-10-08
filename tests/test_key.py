@@ -1,6 +1,7 @@
-from chordal_wip.key import KeyPredictor, key_relation
-import pytest
 import pandas as pd
+import pytest
+
+from chordal_wip.key import KeyPredictor, key_relation
 
 kp = KeyPredictor()
 

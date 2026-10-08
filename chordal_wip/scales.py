@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import functools
 from chordal_wip.helpers import rotate_list
+from chordal_wip.notes import ALL_NOTES
 
 
 # TODO: Reconsider choice of objects for data
@@ -12,10 +13,6 @@ class Scale:
     A class to represent musical scales, specifically church modes derived from the major scale.
     """
 
-    # Class-level constants
-    ALL_NOTES = np.array(
-        ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-    )
     # Distance between intervals in diatonic scale, i.e. 2 (whole-step) or 1 (half-step)
     DIATONIC_INTERVALS = np.array([2, 2, 1, 2, 2, 2, 1])
     SCALES_DICT = {
@@ -29,9 +26,9 @@ class Scale:
     }
 
     def __init__(self, root_note, scale_type):
-        if root_note not in self.ALL_NOTES:
+        if root_note not in ALL_NOTES:
             raise ValueError(
-                f"Invalid root note: {root_note}. Must be one of {self.ALL_NOTES}."
+                f"Invalid root note: {root_note}. Must be one of {ALL_NOTES}."
             )
         if scale_type not in self.SCALES_DICT:
             raise ValueError(
@@ -43,8 +40,8 @@ class Scale:
 
     def _rotate_notes(self):
         """Return all notes rotated to start at the root note."""
-        n_rot = np.where(Scale.ALL_NOTES == self.root_note)[0][0]
-        all_notes_rot = rotate_list(Scale.ALL_NOTES, n_rot)
+        n_rot = np.where(ALL_NOTES == self.root_note)[0][0]
+        all_notes_rot = rotate_list(ALL_NOTES, n_rot)
         return all_notes_rot
 
     # TODO: Use of @property is not consistent
@@ -245,7 +242,7 @@ class MarkovChordProgression(Chord):
         If not make it an attribute and not a method
         """
 
-        # hardcoded transition matrix: THIS SUCKS
+        # hardcoded transition matrix
         transition_matrix = np.array(
             [
                 # From (Row) / To (Col)
@@ -325,7 +322,7 @@ def generate_ref_scales(
     ref_scales_list = []
 
     for mode in MODES:
-        for key in Scale.ALL_NOTES:
+        for key in ALL_NOTES:
             scale_chords = Chord(Scale(key, mode)).data[chord_type].tolist()
 
             # Check for when testing profiles

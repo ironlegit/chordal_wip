@@ -1,16 +1,13 @@
-import chordal_wip.scales as scales
-import pandas as pd
 from collections import Counter
-from scipy.sparse import csr_matrix
-import numpy as np
 from dataclasses import dataclass
+from typing import ClassVar
 
+import numpy as np
+import pandas as pd
+from scipy.sparse import csr_matrix
 
-# Map note names to pitch classes (C=0, C#=1, ..., B=11).
-# This is used to measure distance between keys and note names
-NOTE_TO_PITCH_CLASS = {
-    note: pc for pc, note in enumerate(scales.Scale.ALL_NOTES.tolist())
-}
+from chordal_wip import scales
+from chordal_wip.notes import NOTE_TO_PITCH_CLASS
 
 
 def _softmax(x: np.ndarray) -> np.ndarray:
@@ -185,7 +182,7 @@ class KeyPredictor:
         prediction = self.predict(chords)
         return prediction.label if prediction else None
 
-    RESULT_COLUMNS = [
+    RESULT_COLUMNS: ClassVar[list[str]] = [
         "song_id",
         "label",
         "p_top1",

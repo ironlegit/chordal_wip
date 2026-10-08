@@ -2,6 +2,7 @@ import re
 from typing import ClassVar
 
 import pandas as pd
+from chordal_wip.notes import FLAT_TO_SHARP
 
 
 class ChordCanonizer:
@@ -58,18 +59,6 @@ class ChordCanonizer:
         "dim": "dim",
         "aug": "aug",
         "+": "aug",
-    }
-
-    # One canonical spelling per pitch class: sharps. Lossless in 12-TET:
-    # Bb and A# are the same frequency; this is a relabeling, not a change.
-    FLAT_TO_SHARP: ClassVar[dict[str, str]] = {
-        "Bb": "A#",
-        "Eb": "D#",
-        "Ab": "G#",
-        "Db": "C#",
-        "Gb": "F#",
-        "Cb": "B",
-        "Fb": "E",
     }
 
     def __init__(self, debugging: bool = False):
@@ -142,7 +131,7 @@ class ChordCanonizer:
             slash_bass_candidate = parts[-1]
 
             if self.ROOT_REGEX.match(slash_bass_candidate):
-                decomp_chord["slash"] = self.FLAT_TO_SHARP.get(
+                decomp_chord["slash"] = FLAT_TO_SHARP.get(
                     slash_bass_candidate, slash_bass_candidate
                 )
             else:
@@ -155,7 +144,7 @@ class ChordCanonizer:
             return decomp_chord
 
         root = root_capture.group(0)
-        decomp_chord["root"] = self.FLAT_TO_SHARP.get(root, root)
+        decomp_chord["root"] = FLAT_TO_SHARP.get(root, root)
 
         # Modifier handling
         remainder = chord[len(root) :]
