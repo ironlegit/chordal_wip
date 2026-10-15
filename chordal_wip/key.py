@@ -184,6 +184,8 @@ class KeyPredictor:
 
     RESULT_COLUMNS: ClassVar[list[str]] = [
         "song_id",
+        "tonic",
+        "mode",
         "label",
         "p_top1",
         "label_top2",
@@ -224,6 +226,8 @@ class KeyPredictor:
             rows.append(
                 {
                     "song_id": song_id,
+                    "tonic": prediction.tonic,
+                    "mode": prediction.mode,
                     "label": prediction.label,
                     "p_top1": round(prediction.confidence, 4),
                     "label_top2": f"{tonic2} {mode2}",
