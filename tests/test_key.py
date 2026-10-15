@@ -97,11 +97,12 @@ def test_predict_all_basic():
     result = kp.predict_all(progressions)
 
     assert len(result) == 3
-    assert list(result.columns) == kp.RESULT_COLUMNS  # schema contract
-    assert result["label"].iloc[0] == "C ionian"
+    assert list(result.columns) == kp.RESULT_COLUMNS
+    assert result["tonic"].iloc[0] == "C"
+    assert result["mode"].iloc[0] == "ionian"
 
     unusable = result[result["label"].isna()]
-    assert unusable["song_id"].tolist() == ["song_3"]  # aligned with input
+    assert unusable["song_id"].tolist() == ["song_3"]
 
 
 def test_predict_all_tie_is_consistent_with_predict():
