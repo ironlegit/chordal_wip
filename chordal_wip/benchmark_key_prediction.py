@@ -1,6 +1,10 @@
 import mirdata
 import pandas as pd
 from collections import Counter
+from chordal_wip.chordpipeline import ChordProcessingPipeline
+from chordal_wip.key import KeyPredictor, key_relation
+
+# Get data from Mirdata and validate
 
 beatles = mirdata.initialize("beatles", data_home="data/beatles")
 beatles.download()
@@ -104,3 +108,27 @@ for track_id, reason in skipped:
 
 benchmark = pd.DataFrame(rows)
 print(len(benchmark), "usable tracks")
+
+# Run tokenzier pipeline
+
+cpp = ChordProcessingPipeline()
+
+benchmark = cpp.process(benchmark, "chords_raw")
+
+
+# Key prediction
+
+kp = KeyPredictor()
+
+
+result = kp.predict_all(benchmark.set_index("song_id")["chords_simplified"])
+print(f"result : {result.info()}")
+
+result = pd.merge(
+    result,
+    benchmark[["song_id", "truth_tonic", "truth_mode"]],
+    on="song_id",
+    how="left",
+)
+
+print(f"result : {result.info()}")
