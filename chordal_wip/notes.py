@@ -13,7 +13,6 @@ FLAT_TO_SHARP = {
     "Fb": "E",
 }
 
-# TODO: RM everywhere else
 ALL_NOTES = np.array(["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"])
 
 # Map note names to pitch classes (C=0, C#=1, ..., B=11).

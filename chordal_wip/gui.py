@@ -6,7 +6,7 @@ from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.spinner import Spinner
 import chordal_wip.scales as cw
-
+from chordal_wip.notes import ALL_NOTES
 
 class MyBoxLayout(BoxLayout):
     # Init infinte keywords
@@ -101,7 +101,7 @@ class MyBoxLayout(BoxLayout):
 
         self.spinner_root = Spinner(
             text="C",
-            values=cw.Scale.ALL_NOTES,  #
+            values=ALL_NOTES,  #
             size_hint=(0.2, 0.1),
         )
         self.add_widget(self.spinner_root)
