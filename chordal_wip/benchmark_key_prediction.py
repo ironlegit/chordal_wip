@@ -107,23 +107,28 @@ for track_id, reason in skipped:
     print(f"  {track_id}: {reason}")
 
 benchmark = pd.DataFrame(rows)
-print(len(benchmark), "usable tracks")
+
 
 # Run tokenzier pipeline
 
 cpp = ChordProcessingPipeline()
 
 benchmark = cpp.process(benchmark, "chords_raw")
+benchmark["n_raw"] = benchmark["chords_raw"].str.split().str.len()
 
-
+benchmark.to_csv("test.csv")
+exit()
 # Key prediction
 
 kp = KeyPredictor()
 
 
 result = kp.predict_all(benchmark.set_index("song_id")["chords_simplified"])
-print(f"result : {result.info()}")
 
+print(result)
+
+print(result[result["tonic"].isna()])
+exit()
 result = pd.merge(
     result,
     benchmark[["song_id", "truth_tonic", "truth_mode"]],
@@ -132,3 +137,7 @@ result = pd.merge(
 )
 
 print(f"result : {result.info()}")
+result["relation"] = result.apply(
+    lambda r: key_relation(r["tonic"], r["mode"], r["truth_tonic"], r["truth_mode"]),
+    axis=1,
+)
