@@ -32,23 +32,34 @@ class ChordIsolator:
 
         # Chord modifiers
         brackets = r"(?:\([^\)]*\))"  # match brackets with anything in it
-        qualities = r"(?:maj|min|dim|aug|sus|add|m|M|no)"
+        qualities = r"(?:maj|min|hdim|dim|aug|sus|add|m|M|no)"
         extensions = r"(?:2|4|5|6|7|9|10|11|13)"
         alterations = r"(?:[+#b-])"
+        # Harte bass degrees: inversions are written as an interval, with the
+        # modifier before the number, e.g. 'A:maj/3', 'C:min/b3'
+        degrees = r"(?:[#b]*(?:1|2|3|4|5|6|7|8|9|10|11|12|13))"
 
         # Slash Logic
         # Option 1: root (Cm7/G)
         # Option 2: extension with leading or trailing accidental
         # Option 3: a quality OR some random chord modifier (Cm7/b5)
         # Option 4: Some single alterations
+        # Option 5: a Harte bass degree (A:maj/3)   <- added to slash comments
+        slash_content = rf"/(?:{root_note}|{alterations}?{extensions}{alterations}?|{qualities}|{alterations}|{degrees})+"
 
-        slash_content = rf"/(?:{root_note}|{alterations}?{extensions}{alterations}?|{qualities}|{alterations})+"
+        # One modifier unit; a cluster is any run of these
+        cluster_element = (
+            rf"(?:{qualities}|{extensions}|{alterations}|{brackets}|{slash_content})"
+        )
+        cluster = rf"{cluster_element}*"
 
-        # Cluster
-        cluster = rf"(?:{qualities}|{extensions}|{alterations}|{brackets}|{slash_content})*"
+        # Harte qualifier: ':' directly after the root, e.g. 'G:7', 'A:min'.
+        # At least one modifier must follow the colon, so bare tab-listing
+        # fragments like 'G:' or 'Am7:' fail validation here as well.
+        harte_qualifier = rf"(?::{cluster_element}{cluster})"
 
         # Full chord pattern
-        chord_anatomy = rf"^{root_note}{cluster}$"
+        chord_anatomy = rf"^{root_note}{harte_qualifier}?{cluster}$"
 
         return re.compile(chord_anatomy, re.VERBOSE)
 
@@ -143,8 +154,18 @@ class ChordIsolator:
         # Rm long strings
         if len(token) >= self.char_threshold:
             return True
-        # Rm tabs
-        if re.match(r"^[A-G]{1}[#b]?[-|:\s]{1,2}", token):
+
+        # Rm tabs: root + dash/pipe, e.g. 'A|' ('G:' handled by the next rule)
+        if re.match(r"^[A-G]{1}[#b]?[-|\s]{1,2}", token):
+            return True
+
+        # Rm colon junk: guitar tab listings like 'G:', 'Am7:', 'D/F#:'
+        # Harte-qualified chords survive: the colon must be followed by a
+        # Harte shorthand ('maj', 'min', 'hdim7', 'sus4', '7', ...), a digit
+        # shorthand or a degree list '(' -- see Table 1 in Harte et al. 2005
+        if re.match(r"^[A-G]{1}[#b]?:", token) and not re.match(
+            r"^[A-G]{1}[#b]?:(?:maj|min|hdim|minmaj|dim|aug|sus|\d|\()", token
+        ):
             return True
 
         # Rm coagulated strings, e.g. G7/E7/B7/E7 or G7-E7-B7-E7
